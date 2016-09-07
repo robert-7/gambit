@@ -8,8 +8,8 @@ sudo apt-get install autotools-dev
 sudo apt-get install automake
 sudo apt-get install libtool
 ###### don't know if necessary ####
-sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1397BC53640DB551
-sudo apt-get update
+# sudo apt-key adv --keyserver keyserver.ubuntu.com --recv-keys 1397BC53640DB551
+# sudo apt-get update
 ###################################
 mkdir m4
 aclocal
@@ -17,15 +17,28 @@ libtoolize
 automake --add-missing
 autoconf
 
+./configure
+make
+sudo make install
+
 # Now switch to ./src/python to finish python setup
 cd src/python
 
 # necessary install stuff
-https://bootstrap.pypa.io/ez_setup.py
-https://pip.pypa.io/en/stable/installing/
+wget https://bootstrap.pypa.io/ez_setup.py
+sudo python ez_setup.py
+
+# get pip (explanation here: https://pip.pypa.io/en/stable/installing/)
+wget https://bootstrap.pypa.io/get-pip.py
+sudo python get-pip.py 
+
 pip install cython
-# http://stackoverflow.com/questions/21530577/fatal-error-python-h-no-such-file-or-directory
+
+# this explained a probably I ran into: http://stackoverflow.com/questions/21530577/fatal-error-python-h-no-such-file-or-directory
 sudo apt-get install python-dev
+
+# needed for compilations
+sudo apt-get install g++
 
 # the actual build
 python setup.py build
