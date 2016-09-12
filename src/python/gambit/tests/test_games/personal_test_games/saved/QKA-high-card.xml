@@ -1,0 +1,64 @@
+<gte version="0.1">
+  <gameDescription/>
+  <display>
+    <color player="1">#FF0000</color>
+    <color player="2">#0000FF</color>
+    <font>Times</font>
+    <strokeWidth>1</strokeWidth>
+    <nodeDiameter>5</nodeDiameter>
+    <isetDiameter>25</isetDiameter>
+    <levelDistance>75</levelDistance>
+  </display>
+  <players>
+    <player playerId="1">Rose</player>
+    <player playerId="2">Colin</player>
+  </players>
+  <extensiveForm>
+    <node>
+      <node player="Rose" prob="1/2">
+        <node player="Colin" move="Bet 1">
+          <outcome move="Yes">
+            <payoff player="Rose">1</payoff>
+            <payoff player="Colin">-1</payoff>
+          </outcome>
+          <outcome move="No">
+            <payoff player="Rose">2</payoff>
+            <payoff player="Colin">-2</payoff>
+          </outcome>
+        </node>
+        <node player="Colin" move="Bet 3">
+          <outcome move="Yes">
+            <payoff player="Rose">3</payoff>
+            <payoff player="Colin">-3</payoff>
+          </outcome>
+          <outcome move="No">
+            <payoff player="Rose">6</payoff>
+            <payoff player="Colin">-6</payoff>
+          </outcome>
+        </node>
+      </node>
+      <node player="Rose" prob="1/2">
+        <node player="Colin" move="Bet 1">
+          <outcome move="Yes">
+            <payoff player="Rose">1</payoff>
+            <payoff player="Colin">-1</payoff>
+          </outcome>
+          <outcome move="No">
+            <payoff player="Rose">-2</payoff>
+            <payoff player="Colin">2</payoff>
+          </outcome>
+        </node>
+        <node player="Colin" move="Bet 3">
+          <outcome move="Yes">
+            <payoff player="Rose">3</payoff>
+            <payoff player="Colin">-3</payoff>
+          </outcome>
+          <outcome move="No">
+            <payoff player="Rose">-6</payoff>
+            <payoff player="Colin">6</payoff>
+          </outcome>
+        </node>
+      </node>
+    </node>
+  </extensiveForm>
+</gte>
