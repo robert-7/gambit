@@ -1,4 +1,46 @@
-import gambit, os, time
+import gambit, time, os, sys
+from utils import compute_time_of
+
+'''
+Read GAME_FILE in SAVED_GAMES_DIRECTORY and create a tree from it.
+'''
+def create_tree(args):
+    os.chdir(SAVED_GAMES_DIRECTORY)
+    g = gambit.Game.read_game(GAME_FILE)
+    os.chdir(PARENT_DIRECTORY)
+    return g
+
+'''
+Solve the game.
+'''
+def solve_game(args):
+
+	# create solver
+    solver = gambit.nash.ExternalEnumMixedSolver()
+    
+    # solve game
+    solutions = solver.solve(g)
+    return solutions
+
+'''
+Create a solutions directory and save the solutions there.
+'''
+def print_solutions(args):
+	
+	# create directory and cd in
+    os.mkdir(SOLUTIONS_DIRECTORY)
+    os.chdir(SOLUTIONS_DIRECTORY)
+
+    # create file
+    file_name = "{}-PSP.nfg".format(time.strftime("%Y-%m-%d %H:%M:%S"))
+    target_file = open(file_name, 'w')
+    
+    # print solutions
+    for solution in solutions:
+        target_file.write("{}\n".format(str(solution)))
+    
+    # go back out
+    os.chdir(PARENT_DIRECTORY)
 
 if __name__ == '__main__':
 
@@ -6,42 +48,19 @@ if __name__ == '__main__':
     PARENT_DIRECTORY = ".."
     SAVED_GAMES_DIRECTORY = "saved"
     SOLUTIONS_DIRECTORY = "Solutions-for-PSP-Games-{}".format(time.strftime("%Y-%m-%d %H:%M:%S"))
-    
-    # file names
-    GAME_FILE = "QKA-high-card.gte"
+
+    # get file name
+    if len(sys.argv) != 2:
+        print("ERROR: Please supply a filename in the {} directory".format(SAVED_GAMES_DIRECTORY))
+        sys.exit(2)
+    else:
+    	GAME_FILE = sys.argv[1]
 
     # read file and create game tree
-    os.chdir(SAVED_GAMES_DIRECTORY)
-    print("\nStep 1. Begin Reading File...")
-    start_time = time.time()
-    g = gambit.Game.read_game(GAME_FILE)
-    print("--- %s seconds ---" % (time.time() - start_time))
-    print("Done Reading File!\n")
-
-    # get back to the root directory
-    os.chdir(PARENT_DIRECTORY)
+    g = compute_time_of(1, "Creating Tree", create_tree)
 
     # solve the game
-    solver = gambit.nash.ExternalEnumMixedSolver()
-    print("Step 2. Begin Solving Game...")
-    start_time = time.time()
-    solutions = solver.solve(g)
-    print("--- %s seconds ---" % (time.time() - start_time))
-    print("Done Solving Game!\n")
+    solutions = compute_time_of(2, "Solving Game", solve_game)
 
-    # create the solutions directory and cd in
-    os.mkdir(SOLUTIONS_DIRECTORY)
-    os.chdir(SOLUTIONS_DIRECTORY)
-    
     # print the solutions to a file
-    print("Step 3. Begin Printing Solutions...")
-    start_time = time.time()
-    file_name = "{}-PSP.nfg".format(time.strftime("%Y-%m-%d %H:%M:%S"))
-    target_file = open(file_name, 'w')
-    for solution in solutions:
-        target_file.write("{}\n".format(str(solution)))
-    print("--- %s seconds ---" % (time.time() - start_time))
-    print("Done Printing Solutions!\n")
-
-    # get back to the root directory
-    os.chdir(PARENT_DIRECTORY)
+    compute_time_of(3, "Printing Solutions", print_solutions)   
