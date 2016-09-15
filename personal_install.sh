@@ -48,3 +48,6 @@ sudo python setup.py install
 cd gambit/tests
 sudo apt-get install python-nose
 nosetests
+
+# optional install to write games as xml format
+sudo pip install lxml
