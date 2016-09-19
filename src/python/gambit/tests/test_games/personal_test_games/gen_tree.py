@@ -174,6 +174,7 @@ def create_tree(args):
 
     return g
 
+
 def handle_flop(g, CARD_LABELS_MINUS_PLAYER_1_AND_2_CARDS, i, p1_bet):
     
     # we need the number of possible flop combinations
@@ -278,9 +279,9 @@ def calculate_winner(g):
     evaluator = deuces.Evaluator()
     player_1_hand_value = evaluator.evaluate(board, player_1_hand)
     player_2_hand_value = evaluator.evaluate(board, player_2_hand)
-    if player_1_hand_value > player_2_hand_value:
+    if player_1_hand_value < player_2_hand_value:
         return g.tree.players[0]
-    elif player_1_hand_value < player_2_hand_value:
+    elif player_1_hand_value > player_2_hand_value:
         return g.tree.players[1]
     else:
         return None
