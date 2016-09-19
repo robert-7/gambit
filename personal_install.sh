@@ -51,3 +51,4 @@ nosetests
 
 # optional install to write games as xml format
 sudo pip install lxml
+sudo pip install deuces
