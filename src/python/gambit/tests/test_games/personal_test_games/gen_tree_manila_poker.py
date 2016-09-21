@@ -1,34 +1,41 @@
-import gambit, math, time, os, sys
-import math_extended
-from utils import compute_time_of
+# libraries that are built-in to python
+import os, sys, distutils
+from time import time, strftime
+from distutils import util
 from fractions import Fraction
 from numbers import Rational
-import deuces
+from ConfigParser import ConfigParser
+
+# libraries from GitHub
+import gambit, deuces
+
+# custom libraries
+import math_extended
+from utils import compute_time_of
+
 
 class Poker(gambit.Game):
 
     def __init__(self, 
-                 LOWEST_CARD=13, 
-                 HIGHEST_CARD=14, 
-                 NUMBER_OF_SUITS=4, 
-                 ANTE=1, 
-                 BET=2, 
-                 MIXED_STRATEGIES=True, 
-                 NUM_CHOICES_PER_CARD=2):
+                 MIXED_STRATEGIES,
+                 ANTE, 
+                 BET, 
+                 RAISE,
+                 LOWEST_CARD, 
+                 HIGHEST_CARD, 
+                 NUMBER_OF_SUITS):
         self.tree = gambit.Game.new_tree()
         self.LOWEST_CARD = LOWEST_CARD
         self.HIGHEST_CARD = HIGHEST_CARD
         self.NUMBER_OF_SUITS = NUMBER_OF_SUITS
         
         # bet and ante size
-        self.ANTE = ANTE
-        self.BET = BET
+        self.ANTE  = ANTE
+        self.BET   = BET
+        self.RAISE = RAISE
         
         # TODO: should be moved somewhere else...
         self.MIXED_STRATEGIES = MIXED_STRATEGIES
-
-        # player 1 can bet or check, while player 2 can either call or fold
-        self.NUM_CHOICES_PER_CARD = NUM_CHOICES_PER_CARD
 
         # need to know the size of the deck, and size of hands and board
         self.DECK_SIZE  = (HIGHEST_CARD - LOWEST_CARD + 1) * NUMBER_OF_SUITS
@@ -49,43 +56,86 @@ class Poker(gambit.Game):
 
 
 def create_game(args):
-    # get user input
-    if len(sys.argv)    == 1:
-        PLAYER_1         = "Rose"
-        PLAYER_2         = "Colin"
-        LOWEST_CARD      = 12
-        HIGHEST_CARD     = 14
-        NUMBER_OF_SUITS  = 4
-        ANTE             = 1
-        BET              = 2
-        MIXED_STRATEGIES = True
-    elif len(sys.argv)  == 9:
-        PLAYER_1         = sys.argv[1]
-        PLAYER_2         = sys.argv[2]
-        LOWEST_CARD      = sys.argv[3]
-        HIGHEST_CARD     = sys.argv[4]
-        NUMBER_OF_SUITS  = sys.argv[5]
-        ANTE             = sys.argv[6]
-        BET              = sys.argv[7]
-        MIXED_STRATEGIES = sys.argv[8]
-    else:    
-        print("Usage: python gen_tree_simple [PLAYER_1\n"+
-              "                               PLAYER_2\n"+
-              "                               LOWEST_CARD\n"+
-              "                               HIGHEST_CARD\n"+
-              "                               NUMBER_OF_SUITS\n"+
-              "                               ANTE\n"+
-              "                               BET\n"+
-              "                               MIXED_STRATEGIES]")
+
+    # try to get user input
+    MINIMUM_DECK_SIZE = 7
+    USAGE_OUTPUT = """
+Usage: python gen_tree_simple [PLAYER_1 (str)
+                               PLAYER_2 (str)
+                               MIXED_STRATEGIES (bool)
+                               ANTE (int > 0)
+                               BET (int > 0)
+                               RAISE (int > 0)
+                               LOWEST_CARD (int: 2->13)
+                               HIGHEST_CARD (int: LOWEST_CARD->14)
+                               NUMBER_OF_SUITS (int: 1->4)]
+Deck must contain at least {} cards.""".format(MINIMUM_DECK_SIZE)
+
+    try:
+        
+        if len(sys.argv)    == 1:
+
+            # create the configuration parser
+            CONFIGURATION_FILE = "config.ini"
+            cfg = ConfigParser()
+            cfg.read(CONFIGURATION_FILE)
+
+            GAME_SECTION     = "game"
+            POKER_SECTION    = "poker"
+            MANILA_SECTION   = "manila"
+            PERSONAL_SECTION = "personal"
+            PLAYER_1         = cfg.get(GAME_SECTION,"PLAYER_1")
+            PLAYER_2         = cfg.get(GAME_SECTION,"PLAYER_2")
+            MIXED_STRATEGIES = distutils.util.strtobool(cfg.get(GAME_SECTION,"MIXED_STRATEGIES"))
+            ANTE             = int(cfg.get(POKER_SECTION,"ANTE"))
+            BET              = int(cfg.get(POKER_SECTION,"BET"))
+            RAISE            = int(cfg.get(POKER_SECTION,"RAISE"))
+            LOWEST_CARD      = int(cfg.get(MANILA_SECTION,"LOWEST_CARD"))
+            HIGHEST_CARD     = int(cfg.get(PERSONAL_SECTION,"HIGHEST_CARD"))
+            NUMBER_OF_SUITS  = int(cfg.get(PERSONAL_SECTION,"NUMBER_OF_SUITS"))
+        
+        # values added as arguments
+        elif len(sys.argv)  == 10:
+            PLAYER_1         = sys.argv[1]
+            PLAYER_2         = sys.argv[2]
+            MIXED_STRATEGIES = distutils.util.strtobool(sys.argv[3])
+            ANTE             = int(sys.argv[4])
+            BET              = int(sys.argv[5])
+            RAISE            = int(sys.argv[6])
+            LOWEST_CARD      = int(sys.argv[7])
+            HIGHEST_CARD     = int(sys.argv[8])
+            NUMBER_OF_SUITS  = int(sys.argv[9])
+        
+        # improper amount of values added
+        else:    
+            raise ValueError
+        
+        # extra checks
+        if (ANTE < 0 or 
+            BET < 0 or 
+            RAISE < 0 or 
+            LOWEST_CARD < 2 or 
+            LOWEST_CARD > 13 or 
+            HIGHEST_CARD <= LOWEST_CARD or 
+            HIGHEST_CARD > 14 or 
+            NUMBER_OF_SUITS < 1 or 
+            NUMBER_OF_SUITS > 4 or
+            (HIGHEST_CARD-LOWEST_CARD+1)*NUMBER_OF_SUITS < MINIMUM_DECK_SIZE):
+           raise ValueError
+    except ValueError:
+        print(USAGE_OUTPUT)
         sys.exit(2)
 
-    g = Poker(LOWEST_CARD=LOWEST_CARD, 
-              HIGHEST_CARD=HIGHEST_CARD, 
-              NUMBER_OF_SUITS=NUMBER_OF_SUITS, 
+    # create the poker game
+    g = Poker(MIXED_STRATEGIES=MIXED_STRATEGIES,
               ANTE=ANTE, 
               BET=BET, 
-              MIXED_STRATEGIES=MIXED_STRATEGIES)
+              RAISE=RAISE,
+              LOWEST_CARD=LOWEST_CARD, 
+              HIGHEST_CARD=HIGHEST_CARD, 
+              NUMBER_OF_SUITS=NUMBER_OF_SUITS)
 
+    # create the title and players
     g.tree.players.add(PLAYER_1)
     g.tree.players.add(PLAYER_2)
     TITLE_FORMAT = "PSP Game with {} players and cards from range {} to {} (via tree-method)"
@@ -115,12 +165,18 @@ def create_tree(args):
     CARD_LABELS = create_card_labels(g)
     
     # create the chance node and set the number of nodes
+    total_start_time = time()
+    start_time = time()
+    print "Number of combinations: {}".format(HOLE_CARDS_COMBINATIONS)
     iset_r1 = g.tree.root.append_move(g.tree.players.chance, HOLE_CARDS_COMBINATIONS)
     
     # for each possible hand for player 1...
     hole_cards_deal_branch_counter = -1
     infoset_counter = -1
     for index_card1 in range(len(CARD_LABELS)-1):
+        print("Number of branches completed: {}".format(hole_cards_deal_branch_counter))
+        print("Time taken to create these branches: {} seconds".format(time() - start_time))
+        start_time = time()
         for index_card2 in range(index_card1+1, len(CARD_LABELS)):
             g.cards_in_play[0] = CARD_LABELS[index_card1]
             g.cards_in_play[1] = CARD_LABELS[index_card2]
@@ -172,6 +228,7 @@ def create_tree(args):
                     # handle the flop when player 1 bets and player 2 calls
                     handle_flop(g, CARD_LABELS_MINUS_PLAYER_1_AND_2_CARDS, hole_cards_deal_branch_counter, True)
 
+    print ("Completed making the tree in {} seconds.".format(time() - start_time))
     return g
 
 
@@ -238,7 +295,7 @@ def create_card_labels(g):
     '''
 
     from itertools import product
-    CARD_RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', '10', 'J', 'Q', 'K', 'A']
+    CARD_RANKS = ['2', '3', '4', '5', '6', '7', '8', '9', 'T', 'J', 'Q', 'K', 'A']
     CARD_RANKS_IN_THIS_GAME = CARD_RANKS[g.LOWEST_CARD-2 : g.HIGHEST_CARD-1]
     CARD_SUITS = ['s','c','d','h']
     CARD_SUITS_IN_THIS_GAME = CARD_SUITS[ -g.NUMBER_OF_SUITS + 4:]
@@ -314,7 +371,7 @@ def print_solutions(args):
     os.chdir(SOLUTIONS_DIRECTORY)
 
     # create file
-    file_name = "{}-PSP-Solutions.nfg".format(time.strftime("%Y-%m-%d %H:%M:%S"))
+    file_name = "{}-PSP-Solutions.nfg".format(strftime("%Y-%m-%d %H:%M:%S"))
     target_file = open(file_name, 'w')
     
     # print solutions
@@ -336,7 +393,7 @@ def print_game(args):
     os.chdir(SOLUTIONS_DIRECTORY)
 
     # create file
-    file_name = "{}-PSP-Game.nfg".format(time.strftime("%Y-%m-%d %H:%M:%S"))
+    file_name = "{}-PSP-Game.nfg".format(strftime("%Y-%m-%d %H:%M:%S"))
     target_file = open(file_name, 'w')
     
     # print solutions
@@ -350,7 +407,7 @@ if __name__ == '__main__':
     # directory names
     PARENT_DIRECTORY = ".."
     SAVED_GAMES_DIRECTORY = "saved"
-    SOLUTIONS_DIRECTORY = "Solutions-for-PSP-Games-{}".format(time.strftime("%Y-%m-%d %H:%M:%S"))
+    SOLUTIONS_DIRECTORY = "Solutions-for-PSP-Games-{}".format(strftime("%Y-%m-%d %H:%M:%S"))
 
     # create the game tree, solve the game, print the solutions to a file, print the game
     g = compute_time_of(1, "Initializing Game", create_game, sys.argv)
