@@ -2,10 +2,10 @@ import gambit, math, time, os
 from fractions import Fraction
 from numbers import Rational
 
-def psp(num_players, num_cards, title, player_names, ante, bet, mixed=True):
+def high_card_matrix(num_players, num_cards, title, player_names, ante, bet, mixed=True):
     '''
     Usage: 
-    gen.psp(num_players=2, num_cards=7, title="PSP Game with 2 Players and 7 Cards", player_names=["Rose","Colin"], ante=1, bet=2)
+    gen.high_card_matrix(num_players=2, num_cards=7, title="PSP Game with 2 Players and 7 Cards", player_names=["Rose","Colin"], ante=1, bet=2)
     '''
     NUM_CHOICES_PER_CARD=2
     num_players=2
@@ -151,5 +151,5 @@ if __name__ == '__main__':
     folder = "Solutions-for-PSP-Games-{}".format(time.strftime("%Y-%m-%d %H:%M:%S"))
     os.mkdir(folder)
     os.chdir(folder)
-    for n in range(2, 9):
-        psp(num_players=2, num_cards=n, title="", player_names=["Rose","Colin"], ante=1, bet=2, mixed=False)
+    for n in range(2, 5):
+        high_card_matrix(num_players=2, num_cards=n, title="", player_names=["Rose","Colin"], ante=1, bet=2, mixed=True)
