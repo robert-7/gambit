@@ -60,16 +60,16 @@ def create_game(args):
     # try to get user input
     MINIMUM_DECK_SIZE = 7
     USAGE_OUTPUT = """
-Usage: python gen_tree_simple [PLAYER_1 (str)
-                               PLAYER_2 (str)
-                               MIXED_STRATEGIES (bool)
-                               ANTE (int > 0)
-                               BET (int > 0)
-                               RAISE (int > 0)
-                               LOWEST_CARD (int: 2->13)
-                               HIGHEST_CARD (int: LOWEST_CARD->14)
-                               NUMBER_OF_SUITS (int: 1->4)]
-Deck must contain at least {} cards.""".format(MINIMUM_DECK_SIZE)
+    Usage: python gen_tree_simple [PLAYER_1 (str)
+                                   PLAYER_2 (str)
+                                   MIXED_STRATEGIES (bool)
+                                   ANTE (int > 0)
+                                   BET (int > 0)
+                                   RAISE (int > 0)
+                                   LOWEST_CARD (int: 2->13)
+                                   HIGHEST_CARD (int: LOWEST_CARD->14)
+                                   NUMBER_OF_SUITS (int: 1->4)]
+    Deck must contain at least {} cards.""".format(MINIMUM_DECK_SIZE)
 
     try:
         
@@ -122,6 +122,7 @@ Deck must contain at least {} cards.""".format(MINIMUM_DECK_SIZE)
             NUMBER_OF_SUITS > 4 or
             (HIGHEST_CARD-LOWEST_CARD+1)*NUMBER_OF_SUITS < MINIMUM_DECK_SIZE):
            raise ValueError
+    
     except ValueError:
         print(USAGE_OUTPUT)
         sys.exit(2)
@@ -148,6 +149,7 @@ Deck must contain at least {} cards.""".format(MINIMUM_DECK_SIZE)
     g.PLAYER_2_WINS_SMALL = multiply_outcome(g, "Player 2 Wins Small", -1)
     g.PLAYER_2_WINS_BIG   = multiply_outcome(g, "Player 2 Wins Big",   -3)
 
+    # we're done setting up the game
     return g
 
 
