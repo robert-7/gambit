@@ -67,7 +67,9 @@ def create_game(args):
 
     # we need to stop the script if they never specified enough cards
     # MINIMUM_DECK_SIZE = (g.HAND_SIZE * len(g.tree.players)) + g.FLOP_SIZE + g.TURN_SIZE + g.RIVER_SIZE
-    MINIMUM_DECK_SIZE = ( 2 * 2 ) + 3 + 1 + 1
+    # MINIMUM_DECK_SIZE = ( 2 * 2 ) + 3 + 1 + 1
+    MINIMUM_DECK_SIZE = ( 2 * 2 ) + 3 + 1
+
 
     # try to get user input
     USAGE_OUTPUT = """
@@ -205,7 +207,7 @@ def create_cst(g, cst_tree, PLAYER_1, PLAYER_2, number_of_cards_to_choose, numbe
     # create the branches
     cst_tree.append_move(g.tree.players.chance, CARDS_COMBINATIONS)
 
-    print CARDS_COMBINATIONS
+    print "Created cst with this number of combinations: {}".format(CARDS_COMBINATIONS)
 
     return number_of_cards_remaining
 
@@ -237,23 +239,30 @@ def create_tree(args):
     # 1) copy bst_river subtree to all children of cst_river
     compute_time_of("a", "Copying {} to {}".format(0, 1), copy_bst_to_cst, (g, 0))
 
-    # # 2) copy cst_river subtree to children[0].children[0] and children[1] of bst_turn
+    # 2) copy cst_river subtree to children[0].children[0] and children[1] of bst_turn
     compute_time_of("b", "Copying {} to {}".format(1, 2), copy_cst_to_bst, (g, 1))
 
-    # # 3) copy bst_turn subtree to all children of cst_turn
+    # 3) copy bst_turn subtree to all children of cst_turn
     compute_time_of("c", "Copying {} to {}".format(2, 3), copy_bst_to_cst, (g, 2))
 
-    # # 4) copy cst_turn subtree to children[0].children[0] and children[1] of bst_flop
+    # 4) copy cst_turn subtree to children[0].children[0] and children[1] of bst_flop
     compute_time_of("d", "Copying {} to {}".format(3, 4), copy_cst_to_bst, (g, 3))
 
-    # # 5) copy bst_flop subtree to all children of cst_flop
+    # 5) copy bst_flop subtree to all children of cst_flop
     compute_time_of("e", "Copying {} to {}".format(4, 5), copy_bst_to_cst, (g, 4))
 
-    # # 6) copy cst_flop subtree to children[0].children[0] and children[1] of bst_hole
+    # 6) copy cst_flop subtree to children[0].children[0] and children[1] of bst_hole
     compute_time_of("f", "Copying {} to {}".format(5, 6), copy_cst_to_bst, (g, 5))
 
-    # # 7) copy bst_hole subtree to all children of cst_hole
+    # 7) copy bst_hole subtree to all children of cst_hole
     compute_time_of("g", "Copying {} to {}".format(6, 7), copy_bst_to_cst, (g, 6))
+
+    # return the game 
+    compute_time_of("h", "Pruning the Tree", prune_tree, (g, ))
+
+def prune_tree(g):
+    cst = g.tree.root.children[-1]
+    g.tree.root.move_tree(cst)
 
 def copy_bst_to_cst(g, bst_index):
     bst = g.tree.root.children[bst_index]
