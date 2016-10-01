@@ -1,5 +1,5 @@
 # libraries that are built-in to python
-import os, sys, distutils
+import sys, distutils
 from time import time, strftime
 from distutils import util
 from fractions import Fraction
@@ -12,6 +12,8 @@ import gambit, deuces
 # custom libraries
 import math_extended
 from utils import compute_time_of
+import common
+
 
 class Poker(gambit.Game):
 
@@ -23,6 +25,8 @@ class Poker(gambit.Game):
                  LOWEST_CARD, 
                  HIGHEST_CARD, 
                  NUMBER_OF_SUITS):
+
+        # card values
         self.LOWEST_CARD = LOWEST_CARD
         self.HIGHEST_CARD = HIGHEST_CARD
         self.NUMBER_OF_SUITS = NUMBER_OF_SUITS
@@ -63,13 +67,12 @@ class Poker(gambit.Game):
         self.cst_river = None
 
 
-def create_game(args):
+def create_game(cfg):
 
     # we need to stop the script if they never specified enough cards
     # MINIMUM_DECK_SIZE = (g.HAND_SIZE * len(g.tree.players)) + g.FLOP_SIZE + g.TURN_SIZE + g.RIVER_SIZE
     # MINIMUM_DECK_SIZE = ( 2 * 2 ) + 3 + 1 + 1
     MINIMUM_DECK_SIZE = ( 2 * 2 ) + 3 + 1
-
 
     # try to get user input
     USAGE_OUTPUT = """
@@ -234,6 +237,7 @@ def create_bst(g, PLAYER_1, PLAYER_2):
     # we want to label the node -- but we want add any branches yet TODO: Add Betting/Checking Branches
     p1_check_p2_iset = bst_river_branch.children[1].label = "{}'s Response Node given {} Checked".format(g.tree.players[1].label, g.tree.players[0].label)
 
+
 def create_tree(args):
     
     # 1) copy bst_river subtree to all children of cst_river
@@ -260,9 +264,11 @@ def create_tree(args):
     # return the game 
     compute_time_of("h", "Pruning the Tree", prune_tree, (g, ))
 
+
 def prune_tree(g):
     cst = g.tree.root.children[-1]
     g.tree.root.move_tree(cst)
+
 
 def copy_bst_to_cst(g, bst_index):
     bst = g.tree.root.children[bst_index]
@@ -270,11 +276,13 @@ def copy_bst_to_cst(g, bst_index):
     for branch in xrange(len(cst.children)):
         cst.children[branch].copy_tree(bst)
 
+
 def copy_cst_to_bst(g, cst_index):
     cst = g.tree.root.children[cst_index]
     bst = g.tree.root.children[cst_index+1]
     bst.children[0].children[0].copy_tree(cst)
     bst.children[1].copy_tree(cst)
+
 
 def create_card_labels(g):
     '''
@@ -335,75 +343,12 @@ def calculate_winner(g):
         return None
 
 
-def solve_game(args):
-    '''
-    Solve the game.
-    '''
-
-    # choose the solver needed for this game
-    if MIXED_STRATEGIES == True:
-        solver = gambit.nash.ExternalEnumMixedSolver()
-    else:
-        solver = gambit.nash.ExternalEnumPureSolver()
-    
-    # solve game
-    solutions = solver.solve(g.tree)
-    return solutions
-
-
-def print_solutions(args):
-    '''
-    Create a solutions directory, if necessary, and save the solutions there.
-    '''
-    
-    # create directory and cd in
-    if not os.path.exists(SOLUTIONS_DIRECTORY):
-        os.mkdir(SOLUTIONS_DIRECTORY)
-    os.chdir(SOLUTIONS_DIRECTORY)
-
-    # create file
-    file_name = "{}-PSP-Solutions.nfg".format(strftime("%Y-%m-%d %H:%M:%S"))
-    target_file = open(file_name, 'w')
-    
-    # print solutions
-    for solution in solutions:
-        target_file.write("{}\n".format(str(solution)))
-    
-    # go back out
-    os.chdir(PARENT_DIRECTORY)
-
-
-def print_game(args):
-    '''
-    Create a solutions directory, if necessary, and save the solutions there.
-    '''
-
-    # create directory and cd in
-    if not os.path.exists(SOLUTIONS_DIRECTORY):
-        os.mkdir(SOLUTIONS_DIRECTORY)
-    os.chdir(SOLUTIONS_DIRECTORY)
-
-    # create file
-    file_name = "{}-PSP-Game.nfg".format(strftime("%Y-%m-%d %H:%M:%S"))
-    target_file = open(file_name, 'w')
-    
-    # print solutions
-    target_file.write("{}".format(g.tree.write()))
-    
-    # go back out
-    os.chdir(PARENT_DIRECTORY)
-
-
 if __name__ == '__main__':
 
-    # directory names
-    PARENT_DIRECTORY = ".."
-    SAVED_GAMES_DIRECTORY = "saved"
-    SOLUTIONS_DIRECTORY = "Solutions-for-PSP-Games-{}".format(strftime("%Y-%m-%d %H:%M:%S"))
-
-    # create the game tree, solve the game, print the solutions to a file, print the game
-    g = compute_time_of(1, "Initializing Game", create_game, sys.argv)
+    # create the game tree and saver objects, solve the game, print the solutions to a file, print the game
+    s = compute_time_of(0, "Creating Saver", common.create_saver, ())
+    g = compute_time_of(1, "Creating Game", create_game, (sys.argv,))
     compute_time_of(2, "Creating Tree", create_tree, (g,))
-    # solutions = compute_time_of(3, "Solving Game", solve_game, (g,))
-    # compute_time_of(4, "Printing Solutions", print_solutions, (solutions,)) 
-    compute_time_of(5, "Printing Game", print_game, (g,))
+    solutions = compute_time_of(3, "Solving Game", common.solve_game, (g,))
+    compute_time_of(4, "Printing Solutions", common.print_solutions, (solutions,s)) 
+    compute_time_of(5, "Printing Game", common.print_game, (g,s))
