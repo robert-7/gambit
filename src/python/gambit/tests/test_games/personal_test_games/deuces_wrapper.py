@@ -1,135 +1,46 @@
-import itertools
-import deuces
-import math_extended
+from deuces.evaluator import Evaluator 
+from deuces.lookup import LookupTable
 
-class LookupTable(object):
-    """
-    Number of Distinct Hand Values for Standard Poker Game with 13 Values:
-    Straight Flush   10          [(10 choose 1)]
-    Four of a Kind   156         [(13 choose 2) * (2 choose 1)]
-    Full Houses      156         [(13 choose 2) * (2 choose 1)]
-    Flush            1277        [(13 choose 5) - 10 straight flushes]
-    Straight         10          [(10 choose 1)]
-    Three of a Kind  858         [(13 choose 3) * (3 choose 1)]
-    Two Pair         858         [(13 choose 3) * (3 choose 2)]
-    One Pair         2860        [(13 choose 4) * (4 choose 1)]
-    High Card      + 1277        [(13 choose 5) - 10 straights]
-    -------------------------
-    TOTAL            7462
+
+def return_winner(board, player_1_hand, player_2_hand, n):
     
-    Here we create a lookup table which maps:
-        5 card hand's unique prime product => rank in range [1, 7462]
-    Examples:
-    * Royal flush (best hand possible)          => 1
-    * 7-5-4-3-2 unsuited (worst hand possible)  => 7462
+    # evaluate the hands
+    evaluator   = Evaluator()
+    card_rank1  = evaluator.evaluate(board, player_1_hand)
+    class_rank1 = evaluator.get_rank_class(rank1)
+    card_rank2  = evaluator.evaluate(board, player_2_hand)
+    class_rank2 = evaluator.get_rank_class(rank2)
 
-    Number of Distinct Hand Values for Standard Poker Game with 1 < n < 13 Values:
-    Straight Flush   n-4         [((n-4) choose 1)]
-    Four of a Kind   2*n_C_2     [(n choose 2) * (2 choose 1)]
-    Full Houses      2*n_C_2     [(n choose 2) * (2 choose 1)]
-    Flush            n_C_5 - n-4 [(n choose 5) - n-4 straight flushes]
-    Straight         n-4         [((n-4) choose 1)]
-    Three of a Kind  3*n_C_3     [(n choose 3) * (3 choose 1)]
-    Two Pair         3*n_C_3     [(n choose 3) * (3 choose 2)]
-    One Pair         4*n_C_4     [(n choose 4) * (4 choose 1)]
-    High Card      + n_C_5 - n-4 [(n choose 5) - n-4 straights]
-    -------------------------
-    TOTAL            ??? (something ugly)
-    """
+    # we need to adjust the rank if our lowest card is a 6 or 7
+    if n == 6 or n == 7:
+        rank1 = adjust_rank(card_rank1, class_rank1)
+        rank2 = adjust_rank(card_rank2, class_rank2)
 
-
-    def __init__(self):
-        self.STRAIGHT_FLUSH  = 0
-        self.FOUR_OF_A_KIND  = 1
-        self.FULL_HOUSE      = 2
-        self.FLUSH           = 3
-        self.STRAIGHT        = 4
-        self.THREE_OF_A_KIND = 5
-        self.TWO_PAIR        = 6
-        self.ONE_PAIR        = 7
-        self.HIGH_CARD       = 8
-
-
-def get_total_distinct_number(n, s):
-    # holds the total sum
-    total = 0
-
-    # iterating over all possible hands...
-    for r in range(9):
-        total += get_distinct_number(r, n, s)
-    return total
-
-
-def get_distinct_number(hand_rank, n, s):
-    # holds the number of distinct combinations
-    dc = 0
-
-    if hand_rank == r.STRAIGHT_FLUSH:
-        if n < 5:
-            dc = 0
-        else:
-            dc = math_extended.combinations(n-4,1)
-    elif hand_rank == r.FOUR_OF_A_KIND:
-        if n < 2 or s < 4:
-            dc = 0
-        else:
-            dc = math_extended.combinations(n,2) * math_extended.combinations(2,1)
-    elif hand_rank == r.FULL_HOUSE:
-        if n < 2 or s < 3:
-            dc = 0
-        else:
-            dc = math_extended.combinations(n,2) * math_extended.combinations(2,1)
-    elif hand_rank == r.FLUSH:
-        if n < 5 or s < 2:
-            dc = 0
-        else:
-            dc = math_extended.combinations(n,5) - get_distinct_number(r.STRAIGHT_FLUSH, n, s)
-    elif hand_rank == r.STRAIGHT:
-        if n < 5:
-            dc = 0
-        else:
-            dc = math_extended.combinations(n-4,1)
-    elif hand_rank == r.THREE_OF_A_KIND:
-        if n < 3 or s < 3:
-            dc = 0
-        else:
-            dc = math_extended.combinations(n,3) * math_extended.combinations(3,1)
-    elif hand_rank == r.TWO_PAIR:
-        if n < 3 or s < 2:
-            dc = 0
-        else:
-            dc = math_extended.combinations(n,3) * math_extended.combinations(3,1)
-    elif hand_rank == r.ONE_PAIR:
-        if n < 4 or s < 2:
-            dc = 0
-        else:
-            dc = math_extended.combinations(n,4) * math_extended.combinations(4,1)
-    elif hand_rank == r.HIGH_CARD:
-        if n < 5:
-            dc = 0
-        else:
-            dc = math_extended.combinations(n,5) - get_distinct_number(r.STRAIGHT_FLUSH, n, s)
+    # return the winner
+    if rank1 < rank2:
+        return rank1
+    elif rank1 > rank2:
+        return rank2
     else:
-        raise Exception("{} is not a possible string for hand_rank".format(hand_rank))
-
-    return dc
+        return None
 
 
-if __name__ == "__main__":
-    
-    # number of suits 
-    s = 4
-    
-    # create the lookup table
-    r = LookupTable()
+def adjust_rank(card_rank, class_rank):
 
-    # for each number of values, we want to print out
-    for n in range(1, 20):
+    # if we have a full house, we need to decrease our rank by the number of flush possibilities
+    if class_rank == LookupTable.MAX_TO_RANK_CLASS[LookupTable.MAX_FULL_HOUSE]:        
+        card_rank += LookupTable.MAX_FLUSH - LookupTable.MAX_FULL_HOUSE
 
-        # the total distinct number of hands
-        td = get_total_distinct_number(n, s)
+    # if we have a flush, we need to increase our rank by the number of full house possibilities
+    elif class_rank == LookupTable.MAX_TO_RANK_CLASS[LookupTable.MAX_FLUSH]:        
+        card_rank -= LookupTable.MAX_FULL_HOUSE - LookupTable.MAX_FOUR_OF_A_KIND
 
-    	# the format we'd like to print in
-    	pf = "Number of distinct ranks for {} number of cards: {}"
-        
-        print(pf.format(n, td))
+    # if we have a straight, we need to decrease our rank by the number of three of a kind possibilities
+    elif class_rank == LookupTable.MAX_TO_RANK_CLASS[LookupTable.MAX_STRAIGHT]:   
+        card_rank += LookupTable.MAX_THREE_OF_A_KIND - LookupTable.MAX_STRAIGHT
+
+    # if we have a three of a kind, we need to increase our rank by the number of full house possibilities
+    elif class_rank == LookupTable.MAX_TO_RANK_CLASS[LookupTable.MAX_THREE_OF_A_KIND]: 
+        card_rank -= LookupTable.MAX_STRAIGHT - LookupTable.MAX_FLUSH
+
+    return card_rank
