@@ -12,6 +12,7 @@ import gambit, deuces
 # custom libraries
 import math_extended
 from utils import compute_time_of
+import common
 
 
 class Poker(gambit.Game):
@@ -24,7 +25,8 @@ class Poker(gambit.Game):
                  LOWEST_CARD, 
                  HIGHEST_CARD, 
                  NUMBER_OF_SUITS):
-        self.tree = gambit.Game.new_tree()
+
+        # card values
         self.LOWEST_CARD = LOWEST_CARD
         self.HIGHEST_CARD = HIGHEST_CARD
         self.NUMBER_OF_SUITS = NUMBER_OF_SUITS
@@ -52,13 +54,30 @@ class Poker(gambit.Game):
         self.PLAYER_2_WINS_BIG   = None
 
         # this will hold the cards that are currently being considered in the game
-        self.cards_in_play = [None, None, None, None, None, None, None]
+        self.cards_in_play = [None, None, None, None, None, None, None, None, None]
+
+        self.tree      = None
+        self.bst_hole  = None
+        self.bst_flop  = None
+        self.bst_turn  = None
+        self.bst_river = None
+        self.cst_hole  = None
+        self.cst_flop  = None
+        self.cst_turn  = None
+        self.cst_river = None
+
+        # testing
+        self.DEBUG = True
 
 
-def create_game(args):
+def create_game(cfg):
+
+    # we need to stop the script if they never specified enough cards
+    # MINIMUM_DECK_SIZE = (g.HAND_SIZE * len(g.tree.players)) + g.FLOP_SIZE + g.TURN_SIZE + g.RIVER_SIZE
+    # MINIMUM_DECK_SIZE = ( 2 * 2 ) + 3 + 1 + 1
+    MINIMUM_DECK_SIZE = ( 2 * 2 ) + 3 + 1
 
     # try to get user input
-    MINIMUM_DECK_SIZE = 7
     USAGE_OUTPUT = """
     Usage: python gen_tree_simple [PLAYER_1 (str)
                                    PLAYER_2 (str)
@@ -84,6 +103,7 @@ def create_game(args):
             POKER_SECTION    = "poker"
             MANILA_SECTION   = "manila"
             PERSONAL_SECTION = "personal"
+            TESTING_SECTION  = "testing"
             PLAYER_1         = cfg.get(GAME_SECTION,"PLAYER_1")
             PLAYER_2         = cfg.get(GAME_SECTION,"PLAYER_2")
             MIXED_STRATEGIES = distutils.util.strtobool(cfg.get(GAME_SECTION,"MIXED_STRATEGIES"))
@@ -93,9 +113,11 @@ def create_game(args):
             LOWEST_CARD      = int(cfg.get(MANILA_SECTION,"LOWEST_CARD"))
             HIGHEST_CARD     = int(cfg.get(PERSONAL_SECTION,"HIGHEST_CARD"))
             NUMBER_OF_SUITS  = int(cfg.get(PERSONAL_SECTION,"NUMBER_OF_SUITS"))
+            DEBUG            = distutils.util.strtobool(cfg.get(TESTING_SECTION,"DEBUG"))
+
         
         # values added as arguments
-        elif len(sys.argv)  == 10:
+        elif len(sys.argv)  == 11:
             PLAYER_1         = sys.argv[1]
             PLAYER_2         = sys.argv[2]
             MIXED_STRATEGIES = distutils.util.strtobool(sys.argv[3])
@@ -105,6 +127,7 @@ def create_game(args):
             LOWEST_CARD      = int(sys.argv[7])
             HIGHEST_CARD     = int(sys.argv[8])
             NUMBER_OF_SUITS  = int(sys.argv[9])
+            DEBUG            = distutils.util.strtobool(sys.argv[10])
         
         # improper amount of values added
         else:    
@@ -123,6 +146,7 @@ def create_game(args):
             (HIGHEST_CARD-LOWEST_CARD+1)*NUMBER_OF_SUITS < MINIMUM_DECK_SIZE):
            raise ValueError
     
+    # stop the script if anything went wrong
     except ValueError:
         print(USAGE_OUTPUT)
         sys.exit(2)
@@ -135,8 +159,9 @@ def create_game(args):
               LOWEST_CARD=LOWEST_CARD, 
               HIGHEST_CARD=HIGHEST_CARD, 
               NUMBER_OF_SUITS=NUMBER_OF_SUITS)
-
-    # create the title and players
+    
+    # create the tree, title, and players
+    g.tree = gambit.Game.new_tree()
     g.tree.players.add(PLAYER_1)
     g.tree.players.add(PLAYER_2)
     TITLE_FORMAT = "PSP Game with {} players and cards from range {} to {} (via tree-method)"
@@ -148,6 +173,9 @@ def create_game(args):
     g.PLAYER_1_WINS_BIG   = multiply_outcome(g, "Player 1 Wins Big",    3)
     g.PLAYER_2_WINS_SMALL = multiply_outcome(g, "Player 2 Wins Small", -1)
     g.PLAYER_2_WINS_BIG   = multiply_outcome(g, "Player 2 Wins Big",   -3)
+
+    # testing purposes
+    g.DEBUG = DEBUG
 
     # we're done setting up the game
     return g
@@ -335,9 +363,9 @@ def calculate_winner(g):
         deuces.Card.new(g.cards_in_play[6])
     ]
 
-    evaluator = deuces.Evaluator()
-    player_1_hand_value = evaluator.evaluate(board, player_1_hand)
-    player_2_hand_value = evaluator.evaluate(board, player_2_hand)
+    # evaluator = deuces.Evaluator()
+    # player_1_hand_value = evaluator.evaluate(board, player_1_hand)
+    # player_2_hand_value = evaluator.evaluate(board, player_2_hand)
     if player_1_hand_value < player_2_hand_value:
         return g.tree.players[0]
     elif player_1_hand_value > player_2_hand_value:
@@ -346,74 +374,12 @@ def calculate_winner(g):
         return None
 
 
-def solve_game(args):
-    '''
-    Solve the game.
-    '''
-
-    # choose the solver needed for this game
-    if MIXED_STRATEGIES == True:
-        solver = gambit.nash.ExternalEnumMixedSolver()
-    else:
-        solver = gambit.nash.ExternalEnumPureSolver()
-    
-    # solve game
-    solutions = solver.solve(g.tree)
-    return solutions
-
-
-def print_solutions(args):
-    '''
-    Create a solutions directory, if necessary, and save the solutions there.
-    '''
-    
-    # create directory and cd in
-    if not os.path.exists(SOLUTIONS_DIRECTORY):
-        os.mkdir(SOLUTIONS_DIRECTORY)
-    os.chdir(SOLUTIONS_DIRECTORY)
-
-    # create file
-    file_name = "{}-PSP-Solutions.nfg".format(strftime("%Y-%m-%d %H:%M:%S"))
-    target_file = open(file_name, 'w')
-    
-    # print solutions
-    for solution in solutions:
-        target_file.write("{}\n".format(str(solution)))
-    
-    # go back out
-    os.chdir(PARENT_DIRECTORY)
-
-
-def print_game(args):
-    '''
-    Create a solutions directory, if necessary, and save the solutions there.
-    '''
-
-    # create directory and cd in
-    if not os.path.exists(SOLUTIONS_DIRECTORY):
-        os.mkdir(SOLUTIONS_DIRECTORY)
-    os.chdir(SOLUTIONS_DIRECTORY)
-
-    # create file
-    file_name = "{}-PSP-Game.nfg".format(strftime("%Y-%m-%d %H:%M:%S"))
-    target_file = open(file_name, 'w')
-    
-    # print solutions
-    target_file.write("{}".format(g.tree.write()))
-    
-    # go back out
-    os.chdir(PARENT_DIRECTORY)
-
 if __name__ == '__main__':
 
-    # directory names
-    PARENT_DIRECTORY = ".."
-    SAVED_GAMES_DIRECTORY = "saved"
-    SOLUTIONS_DIRECTORY = "Solutions-for-PSP-Games-{}".format(strftime("%Y-%m-%d %H:%M:%S"))
-
-    # create the game tree, solve the game, print the solutions to a file, print the game
-    g = compute_time_of(1, "Initializing Game", create_game, sys.argv)
-    g = compute_time_of(2, "Creating Tree", create_tree, g)
-    # solutions = compute_time_of(3, "Solving Game", solve_game, g)
-    # compute_time_of(4, "Printing Solutions", print_solutions, solutions) 
-    compute_time_of(5, "Printing Game", print_game, g)
+    # create the game tree and saver objects, solve the game, print the solutions to a file, print the game
+    s = compute_time_of(0, "Creating Saver", common.create_saver, ())
+    g = compute_time_of(1, "Creating Game", create_game, (sys.argv,))
+    compute_time_of(2, "Creating Tree", create_tree, (g,))
+    solutions = compute_time_of(3, "Solving Game", common.solve_game, (g,))
+    compute_time_of(4, "Printing Solutions", common.print_solutions, (solutions,s)) 
+    compute_time_of(5, "Printing Game", common.print_game, (g,s))

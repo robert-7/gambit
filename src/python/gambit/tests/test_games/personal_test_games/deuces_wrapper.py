@@ -1,26 +1,51 @@
 from deuces.evaluator import Evaluator 
 from deuces.lookup import LookupTable
+from deuces.card import Card
 
 
-def return_winner(board, player_1_hand, player_2_hand, n):
-    
+def return_winner(g):
+
+    # create hands and board    
+    hand1 = [
+        Card.new(g.cards_in_play[0]),
+        Card.new(g.cards_in_play[1])
+    ]
+    hand2 = [
+        Card.new(g.cards_in_play[2]),
+        Card.new(g.cards_in_play[3])
+    ]
+    board = [
+        Card.new(g.cards_in_play[4]),
+        Card.new(g.cards_in_play[5]),
+        Card.new(g.cards_in_play[6]),
+        Card.new(g.cards_in_play[7]),
+        Card.new(g.cards_in_play[8])
+    ]
+
     # evaluate the hands
     evaluator   = Evaluator()
-    card_rank1  = evaluator.evaluate(board, player_1_hand)
-    class_rank1 = evaluator.get_rank_class(rank1)
-    card_rank2  = evaluator.evaluate(board, player_2_hand)
-    class_rank2 = evaluator.get_rank_class(rank2)
+    hand1_rank  = evaluator.evaluate(board, hand1)
+    hand1_class = evaluator.get_rank_class(hand1_rank)
+    hand1_class_str = evaluator.class_to_string(hand1_class)
+    hand2_rank  = evaluator.evaluate(board, hand2)
+    hand2_class = evaluator.get_rank_class(hand2_rank)
+    hand2_class_str = evaluator.class_to_string(hand2_class)
+
+    # for testing purposes
+    if g.DEBUG:
+        print("hand1_rank={}, hand1_class_str={}, hand2_rank={}, hand2_class_str={}".format(
+               hand1_rank,    hand1_class_str,    hand2_rank,    hand2_class_str))
 
     # we need to adjust the rank if our lowest card is a 6 or 7
-    if n == 6 or n == 7:
-        rank1 = adjust_rank(card_rank1, class_rank1)
-        rank2 = adjust_rank(card_rank2, class_rank2)
+    if g.LOWEST_CARD == 6 or g.LOWEST_CARD == 7:
+        hand1_rank = adjust_rank(hand1_rank, hand1_class)
+        hand2_rank = adjust_rank(hand2_rank, hand2_class)
 
     # return the winner
-    if rank1 < rank2:
-        return rank1
-    elif rank1 > rank2:
-        return rank2
+    if hand1_rank < hand2_rank:
+        return g.tree.players[0]
+    elif hand1_rank > hand2_rank:
+        return g.tree.players[1]
     else:
         return None
 
