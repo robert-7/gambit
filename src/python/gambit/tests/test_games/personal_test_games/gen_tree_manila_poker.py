@@ -22,13 +22,15 @@ class Poker(gambit.Game):
                  ANTE, 
                  BET, 
                  RAISE,
+                 ACE_WRAPS,
                  LOWEST_CARD, 
                  HIGHEST_CARD, 
                  NUMBER_OF_SUITS):
 
         # card values
-        self.LOWEST_CARD = LOWEST_CARD
-        self.HIGHEST_CARD = HIGHEST_CARD
+        self.ACE_WRAPS       = ACE_WRAPS
+        self.LOWEST_CARD     = LOWEST_CARD
+        self.HIGHEST_CARD    = HIGHEST_CARD
         self.NUMBER_OF_SUITS = NUMBER_OF_SUITS
         
         # bet and ante size
@@ -54,6 +56,7 @@ class Poker(gambit.Game):
         self.PLAYER_2_WINS_BIG   = None
 
         # this will hold the cards that are currently being considered in the game
+        self.decks         = [[],[],[],[],[],[],[],[],[],[]] # there are 10
         self.cards_in_play = [None, None, None, None, None, None, None, None, None]
 
         self.tree      = None
@@ -110,6 +113,7 @@ def create_game(cfg):
             ANTE             = int(cfg.get(POKER_SECTION,"ANTE"))
             BET              = int(cfg.get(POKER_SECTION,"BET"))
             RAISE            = int(cfg.get(POKER_SECTION,"RAISE"))
+            ACE_WRAPS        = distutils.util.strtobool(cfg.get(MANILA_SECTION,"ACE_WRAPS"))
             LOWEST_CARD      = int(cfg.get(MANILA_SECTION,"LOWEST_CARD"))
             HIGHEST_CARD     = int(cfg.get(PERSONAL_SECTION,"HIGHEST_CARD"))
             NUMBER_OF_SUITS  = int(cfg.get(PERSONAL_SECTION,"NUMBER_OF_SUITS"))
@@ -117,17 +121,18 @@ def create_game(cfg):
 
         
         # values added as arguments
-        elif len(sys.argv)  == 11:
+        elif len(sys.argv)  == 12:
             PLAYER_1         = sys.argv[1]
             PLAYER_2         = sys.argv[2]
             MIXED_STRATEGIES = distutils.util.strtobool(sys.argv[3])
             ANTE             = int(sys.argv[4])
             BET              = int(sys.argv[5])
             RAISE            = int(sys.argv[6])
-            LOWEST_CARD      = int(sys.argv[7])
-            HIGHEST_CARD     = int(sys.argv[8])
-            NUMBER_OF_SUITS  = int(sys.argv[9])
-            DEBUG            = distutils.util.strtobool(sys.argv[10])
+            ACE_WRAPS        = distutils.util.strtobool(sys.argv[7])
+            LOWEST_CARD      = int(sys.argv[8])
+            HIGHEST_CARD     = int(sys.argv[9])
+            NUMBER_OF_SUITS  = int(sys.argv[10])
+            DEBUG            = distutils.util.strtobool(sys.argv[11])
         
         # improper amount of values added
         else:    
@@ -156,6 +161,7 @@ def create_game(cfg):
               ANTE=ANTE, 
               BET=BET, 
               RAISE=RAISE,
+              ACE_WRAPS=ACE_WRAPS,
               LOWEST_CARD=LOWEST_CARD, 
               HIGHEST_CARD=HIGHEST_CARD, 
               NUMBER_OF_SUITS=NUMBER_OF_SUITS)
@@ -177,6 +183,9 @@ def create_game(cfg):
     # testing purposes
     g.DEBUG = DEBUG
 
+    # create the cards
+    g.decks[0] = create_card_labels(g)
+
     # we're done setting up the game
     return g
 
@@ -185,21 +194,88 @@ def create_tree(args):
 
     print("Beginning to compute payoff tree".format(g.tree.title))
 
+    # we want to start this tree by creating a chance node
+    create_cst(g=g, 
+               root=g.tree.root, 
+               deal_size=g.HAND_SIZE, 
+               repeat=len(g.tree.players), 
+               deck=0,
+               combinations=1)
+
+
+def create_cst(g, root, deal_size, repeat, bet_round, combinations):
+    """
+    g: the game itself
+    root: the 
+    deal_size: the number of cards we'll deal   
+    repeat: the number of times we'll deal the cards
+    deck: or current deck of cards
+    combinations: the number combinations we have so far
+    """
+
+    # for number in range(repeat):
+        
+    #     # Calculate the number of card combinations for this round of cards getting flipped
+    #     CARDS_COMBINATIONS *= math_extended.combinations(len(decks[deck]), deal_size)
+
+    #     deck += 1
+    # # create the branches
+    # cst_tree.append_move(g.tree.players.chance, CARDS_COMBINATIONS)
+
+    # print "Created cst with this number of combinations: {}".format(CARDS_COMBINATIONS)
+
+    # if repeat > 1:
+    #     create_cst(g, root, deal_size, repeat-1, deck, combinations)
+    # if deal_size > 1:
+    #     create_cst(g, root, deal_size-1, repeat, deck, combinations)
+    
+    # # look at the right deck and right slot to insert the card    
+    # i = get_current_index(deal_size, repeat, bet_index)
+    
+    # # for every card
+    # for c in range(len(decks[i])):
+    #     g.cards_in_play[i] = decks[c]
+
+    # look at the right deck and right slot to insert the card    
+    ci = get_current_index(deal_size, repeat, bet_index)
+
+    # need to keep track of the number of cards left to deal
+    cards = deal_size
+    while cards != 0:
+
+        # we need the index of the card we're interested
+        for c in range(len(decks[ci])):
+
+            # assign the card at that index to 
+            g.cards_in_play[ci] = decks[ci][c]
+
+            # update the next deck -- should only have cards after the current index
+            decks[ci+1] = decks[ci][c+1:]
+            ci += 1
+
+        # update the number of cards left to deal
+        cards -= 1
+
+
+
+
+
+
+
+
+
     # Chance node set probability of each chance action
     NUMBER_OF_PLAYERS       = len(g.tree.players)
     HOLE_CARDS              = g.HAND_SIZE * NUMBER_OF_PLAYERS
     HOLE_CARDS_COMBINATIONS = math_extended.combinations(g.DECK_SIZE, g.HAND_SIZE) * \
                               math_extended.combinations(g.DECK_SIZE - g.HAND_SIZE, g.HAND_SIZE)
-
-    # create the cards
-    CARD_LABELS = create_card_labels(g)
     
     # create the chance node and set the number of nodes
     total_start_time = time()
     start_time = time()
     print "Number of combinations: {}".format(HOLE_CARDS_COMBINATIONS)
-    iset_r1 = g.tree.root.append_move(g.tree.players.chance, HOLE_CARDS_COMBINATIONS)
-    
+    iset_r1 = g.tree.root.append_move(g.tree.players.chance, HOLE_CARDS_COMBINATIONS)  
+
     # for each possible hand for player 1...
     hole_cards_deal_branch_counter = -1
     infoset_counter = -1
@@ -210,18 +286,18 @@ def create_tree(args):
         for index_card2 in range(index_card1+1, len(CARD_LABELS)):
             g.cards_in_play[0] = CARD_LABELS[index_card1]
             g.cards_in_play[1] = CARD_LABELS[index_card2]
-            CARD_LABELS_MINUS_PLAYER_1_CARDS = CARD_LABELS[:index_card1] +              \
-                                               CARD_LABELS[index_card1+1:index_card2] + \
-                                               CARD_LABELS[index_card2+1:]
+            g.deck_h1 = CARD_LABELS[:index_card1] +              \
+                      CARD_LABELS[index_card1+1:index_card2] + \
+                      CARD_LABELS[index_card2+1:]
             
             # ... and for each possible hand for player 2...
-            for index_card3 in range(len(CARD_LABELS_MINUS_PLAYER_1_CARDS)-1):
-                for index_card4 in range(index_card3+1, len(CARD_LABELS_MINUS_PLAYER_1_CARDS)):
-                    g.cards_in_play[2] = CARD_LABELS_MINUS_PLAYER_1_CARDS[index_card3]
-                    g.cards_in_play[3] = CARD_LABELS_MINUS_PLAYER_1_CARDS[index_card4]
-                    CARD_LABELS_MINUS_PLAYER_1_AND_2_CARDS = CARD_LABELS_MINUS_PLAYER_1_CARDS[:index_card3] +              \
-                                                             CARD_LABELS_MINUS_PLAYER_1_CARDS[index_card3+1:index_card4] + \
-                                                             CARD_LABELS_MINUS_PLAYER_1_CARDS[index_card4+1:]
+            for index_card3 in range(len(g.deck_h1)-1):
+                for index_card4 in range(index_card3+1, len(g.deck_h1)):
+                    g.cards_in_play[2] = g.deck_h1[index_card3]
+                    g.cards_in_play[3] = g.deck_h1[index_card4]
+                    g.deck_h2 = g.deck_h1[:index_card3] +              \
+                              g.deck_h1[index_card3+1:index_card4] + \
+                              g.deck_h1[index_card4+1:]
 
                     # ... we need to create a branch for that chance action. 
                     hole_cards_deal_branch_counter += 1
@@ -253,16 +329,39 @@ def create_tree(args):
                     iset.actions[0].label = "{} checks".format(g.tree.players[1].label)
 
                     # handle the flop when player 1 checks
-                    handle_flop(g, CARD_LABELS_MINUS_PLAYER_1_AND_2_CARDS, hole_cards_deal_branch_counter, False)
+                    handle_flop(g, g.deck_h2, hole_cards_deal_branch_counter, False)
 
                     # handle the flop when player 1 bets and player 2 calls
-                    handle_flop(g, CARD_LABELS_MINUS_PLAYER_1_AND_2_CARDS, hole_cards_deal_branch_counter, True)
+                    handle_flop(g, g.deck_h2, hole_cards_deal_branch_counter, True)
 
     print ("Completed making the tree in {} seconds.".format(time() - start_time))
     return g
 
+# def get_curret_index(repeat, bet_round):
 
-def handle_flop(g, CARD_LABELS_MINUS_PLAYER_1_AND_2_CARDS, i, p1_bet):
+#     if   repeat == 1 and bet_round == 1: deck_index = 0
+#     elif repeat == 2 and bet_round == 1: deck_index = 1
+#     elif repeat == 1 and bet_round == 2: deck_index = 2
+#     elif repeat == 1 and bet_round == 3: deck_index = 3
+#     elif repeat == 1 and bet_round == 4: deck_index = 4
+#     else: raise ValueError("Bad values for repeat ({}) and/or bet round ({})".format(repeat, bet_round))
+#     return deck_index
+
+def get_current_index(deal_size, repeat, bet_round):
+
+    if   deal_size == 1 and repeat == 1 and bet_round == 1: cards_in_play_index = 0
+    elif deal_size == 2 and repeat == 1 and bet_round == 1: cards_in_play_index = 1
+    elif deal_size == 1 and repeat == 2 and bet_round == 1: cards_in_play_index = 2
+    elif deal_size == 2 and repeat == 2 and bet_round == 1: cards_in_play_index = 3
+    elif deal_size == 1 and repeat == 1 and bet_round == 2: cards_in_play_index = 4
+    elif deal_size == 2 and repeat == 1 and bet_round == 2: cards_in_play_index = 5
+    elif deal_size == 3 and repeat == 1 and bet_round == 2: cards_in_play_index = 6
+    elif deal_size == 1 and repeat == 1 and bet_round == 3: cards_in_play_index = 7
+    elif deal_size == 1 and repeat == 1 and bet_round == 4: cards_in_play_index = 8
+    else: raise ValueError("Bad values for deal_size ({}), repeat ({}), and/or bet round ({})".format(deal_size, repeat, bet_round))
+    return cards_in_play_index
+
+def handle_flop(g, i, p1_bet):
     
     # we need the number of possible flop combinations
     NUMBER_OF_PLAYERS       = len(g.tree.players)
@@ -279,16 +378,16 @@ def handle_flop(g, CARD_LABELS_MINUS_PLAYER_1_AND_2_CARDS, i, p1_bet):
 
     # for each possible flop...
     j = -1
-    for index_card5 in range(len(CARD_LABELS_MINUS_PLAYER_1_AND_2_CARDS)-2):
-        for index_card6 in range(index_card5+1, len(CARD_LABELS_MINUS_PLAYER_1_AND_2_CARDS)-1):
-            for index_card7 in range(index_card6+1, len(CARD_LABELS_MINUS_PLAYER_1_AND_2_CARDS)):
-                g.cards_in_play[4] = CARD_LABELS_MINUS_PLAYER_1_AND_2_CARDS[index_card5]
-                g.cards_in_play[5] = CARD_LABELS_MINUS_PLAYER_1_AND_2_CARDS[index_card6]
-                g.cards_in_play[6] = CARD_LABELS_MINUS_PLAYER_1_AND_2_CARDS[index_card7]
-                CARD_LABELS_MINUS_PLAYER_1_AND_2_AND_FLOP_CARDS = CARD_LABELS_MINUS_PLAYER_1_AND_2_CARDS[:index_card5] +              \
-                                                                  CARD_LABELS_MINUS_PLAYER_1_AND_2_CARDS[index_card5+1:index_card6] + \
-                                                                  CARD_LABELS_MINUS_PLAYER_1_AND_2_CARDS[index_card6+1:index_card7] + \
-                                                                  CARD_LABELS_MINUS_PLAYER_1_AND_2_CARDS[index_card7+1:]
+    for index_card5 in range(len(g.deck_h2)-2):
+        for index_card6 in range(index_card5+1, len(g.deck_h2)-1):
+            for index_card7 in range(index_card6+1, len(g.deck_h2)):
+                g.cards_in_play[4] = g.deck_h2[index_card5]
+                g.cards_in_play[5] = g.deck_h2[index_card6]
+                g.cards_in_play[6] = g.deck_h2[index_card7]
+                g.deck_f = g.deck_h2[:index_card5] +              \
+                           g.deck_h2[index_card5+1:index_card6] + \
+                           g.deck_h2[index_card6+1:index_card7] + \
+                           g.deck_h2[index_card7+1:]
 
                 # ... we need to create a branch for that chance action. 
                 j += 1
