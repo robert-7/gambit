@@ -1,6 +1,7 @@
 from deuces.evaluator import Evaluator 
 from deuces.lookup import LookupTable
 from deuces.card import Card
+from sys import stdout
 
 
 def return_winner(g):
@@ -10,8 +11,8 @@ def return_winner(g):
 
     # evaluate the hands
     evaluator   = Evaluator()
-    hand1_rank  = evaluator.evaluate(board, hand1)
-    hand2_rank  = evaluator.evaluate(board, hand2)
+    hand1_rank  = evaluator.evaluate(hand1, board)
+    hand2_rank  = evaluator.evaluate(hand2, board)
 
     # we should adjust the rank
     if g.ACE_WRAPS and (2 < g.LOWEST_CARD < 10):
@@ -48,6 +49,7 @@ def create_hands_and_board(g):
     # most checks are done, so we just need to create a card
     # only if it's value is higher than or equal to the value of the
     # lowest card allowed
+
     for card in g.cards_in_play:
 
         # get value of card as a string, or card_value = cv and card_value_string = cvs
@@ -66,15 +68,23 @@ def create_hands_and_board(g):
                 raise ValueError(error_msg.format(g.LOWEST_CARD, cv))
 
     # create the hands and board
-    hand1 = create_cards(g.cards_in_play[0:1])
-    hand2 = create_cards(g.cards_in_play[2:3])
-    board = create_cards(g.cards_in_play[4:8])
+    hand1 = create_cards(g.cards_in_play[0:2])
+    hand2 = create_cards(g.cards_in_play[2:4])
+    board = create_cards(g.cards_in_play[4:])
+    
+    if g.DEBUG:
+        stdout.write("hand1=")
+        Card.print_pretty_cards(hand1)
+        stdout.write("hand2=")
+        Card.print_pretty_cards(hand2)
+        stdout.write("board=")
+        Card.print_pretty_cards(board)
 
     return hand1, hand2, board
 
 def create_cards(cards):
 
-    # we want to re
+    # we want to return a list of Card objects, given the string label
     ret_cards = []
     for card in cards:
         ret_cards.append(Card.new(card))
@@ -96,47 +106,47 @@ def adjust_rank_if_ace_wrap(card_rank, n):
     # However, we should obtain the rank of the hands through calculation, 
     # rather than store their values
     evaluator          = Evaluator()
-    offsuit_A3456_rank = evaluator.evaluate(create_cards("Ah","3h","4h","5h","6h"))
-    offsuit_A4567_rank = evaluator.evaluate(create_cards("Ah","4h","5h","6h","7h"))
-    offsuit_A5678_rank = evaluator.evaluate(create_cards("Ah","5h","6h","7h","8h"))
-    offsuit_A6789_rank = evaluator.evaluate(create_cards("Ah","6h","7h","8h","9h"))
-    offsuit_A789T_rank = evaluator.evaluate(create_cards("Ah","7h","8h","9h","Th"))
-    offsuit_A89TJ_rank = evaluator.evaluate(create_cards("Ah","8h","9h","Th","Jh"))
-    offsuit_A9TJQ_rank = evaluator.evaluate(create_cards("Ah","9h","Th","Jh","Qh"))
+    offsuit_A3456_rank = evaluator.evaluate(create_cards(["Ah","3h","4h","5h","6h"]),[])
+    offsuit_A4567_rank = evaluator.evaluate(create_cards(["Ah","4h","5h","6h","7h"]),[])
+    offsuit_A5678_rank = evaluator.evaluate(create_cards(["Ah","5h","6h","7h","8h"]),[])
+    offsuit_A6789_rank = evaluator.evaluate(create_cards(["Ah","6h","7h","8h","9h"]),[])
+    offsuit_A789T_rank = evaluator.evaluate(create_cards(["Ah","7h","8h","9h","Th"]),[])
+    offsuit_A89TJ_rank = evaluator.evaluate(create_cards(["Ah","8h","9h","Th","Jh"]),[])
+    offsuit_A9TJQ_rank = evaluator.evaluate(create_cards(["Ah","9h","Th","Jh","Qh"]),[])
 
-    offsuit_23456_rank = evaluator.evaluate(create_cards("2h","3h","4h","5h","6h"))
-    offsuit_34567_rank = evaluator.evaluate(create_cards("3h","4h","5h","6h","7h"))
-    offsuit_45678_rank = evaluator.evaluate(create_cards("4h","5h","6h","7h","8h"))
-    offsuit_56789_rank = evaluator.evaluate(create_cards("5h","6h","7h","8h","9h"))
-    offsuit_6789T_rank = evaluator.evaluate(create_cards("6h","7h","8h","9h","Th"))
-    offsuit_789TJ_rank = evaluator.evaluate(create_cards("7h","8h","9h","Th","Jh"))
-    offsuit_89TJQ_rank = evaluator.evaluate(create_cards("8h","9h","Th","Jh","Qh"))
+    offsuit_23456_rank = evaluator.evaluate(create_cards(["2h","3h","4h","5h","6h"]),[])
+    offsuit_34567_rank = evaluator.evaluate(create_cards(["3h","4h","5h","6h","7h"]),[])
+    offsuit_45678_rank = evaluator.evaluate(create_cards(["4h","5h","6h","7h","8h"]),[])
+    offsuit_56789_rank = evaluator.evaluate(create_cards(["5h","6h","7h","8h","9h"]),[])
+    offsuit_6789T_rank = evaluator.evaluate(create_cards(["6h","7h","8h","9h","Th"]),[])
+    offsuit_789TJ_rank = evaluator.evaluate(create_cards(["7h","8h","9h","Th","Jh"]),[])
+    offsuit_89TJQ_rank = evaluator.evaluate(create_cards(["8h","9h","Th","Jh","Qh"]),[])
 
-    onsuit_A3456_rank  = evaluator.evaluate(create_cards("Ah","3h","4h","5h","6c"))
-    onsuit_A4567_rank  = evaluator.evaluate(create_cards("Ah","4h","5h","6h","7c"))
-    onsuit_A5678_rank  = evaluator.evaluate(create_cards("Ah","5h","6h","7h","8c"))
-    onsuit_A6789_rank  = evaluator.evaluate(create_cards("Ah","6h","7h","8h","9c"))
-    onsuit_A789T_rank  = evaluator.evaluate(create_cards("Ah","7h","8h","9h","Tc"))
-    onsuit_A89TJ_rank  = evaluator.evaluate(create_cards("Ah","8h","9h","Th","Jc"))
-    onsuit_A9TJQ_rank  = evaluator.evaluate(create_cards("Ah","9h","Th","Jh","Qc"))
+    onsuit_A3456_rank  = evaluator.evaluate(create_cards(["Ah","3h","4h","5h","6c"]),[])
+    onsuit_A4567_rank  = evaluator.evaluate(create_cards(["Ah","4h","5h","6h","7c"]),[])
+    onsuit_A5678_rank  = evaluator.evaluate(create_cards(["Ah","5h","6h","7h","8c"]),[])
+    onsuit_A6789_rank  = evaluator.evaluate(create_cards(["Ah","6h","7h","8h","9c"]),[])
+    onsuit_A789T_rank  = evaluator.evaluate(create_cards(["Ah","7h","8h","9h","Tc"]),[])
+    onsuit_A89TJ_rank  = evaluator.evaluate(create_cards(["Ah","8h","9h","Th","Jc"]),[])
+    onsuit_A9TJQ_rank  = evaluator.evaluate(create_cards(["Ah","9h","Th","Jh","Qc"]),[])
     
-    onsuit_23456_rank  = evaluator.evaluate(create_cards("2h","3h","4h","5h","6c"))
-    onsuit_34567_rank  = evaluator.evaluate(create_cards("3h","4h","5h","6h","7c"))
-    onsuit_45678_rank  = evaluator.evaluate(create_cards("4h","5h","6h","7h","8c"))
-    onsuit_56789_rank  = evaluator.evaluate(create_cards("5h","6h","7h","8h","9c"))
-    onsuit_6789T_rank  = evaluator.evaluate(create_cards("6h","7h","8h","9h","Tc"))
-    onsuit_789TJ_rank  = evaluator.evaluate(create_cards("7h","8h","9h","Th","Jc"))
-    onsuit_89TJQ_rank  = evaluator.evaluate(create_cards("8h","9h","Th","Jh","Qc"))
+    onsuit_23456_rank  = evaluator.evaluate(create_cards(["2h","3h","4h","5h","6c"]),[])
+    onsuit_34567_rank  = evaluator.evaluate(create_cards(["3h","4h","5h","6h","7c"]),[])
+    onsuit_45678_rank  = evaluator.evaluate(create_cards(["4h","5h","6h","7h","8c"]),[])
+    onsuit_56789_rank  = evaluator.evaluate(create_cards(["5h","6h","7h","8h","9c"]),[])
+    onsuit_6789T_rank  = evaluator.evaluate(create_cards(["6h","7h","8h","9h","Tc"]),[])
+    onsuit_789TJ_rank  = evaluator.evaluate(create_cards(["7h","8h","9h","Th","Jc"]),[])
+    onsuit_89TJQ_rank  = evaluator.evaluate(create_cards(["8h","9h","Th","Jh","Qc"]),[])
 
     # the dictionary defining the necessary mappings, # ace-low-straight-map
     alsm = {
-                (A3456_offsuit_rank,3) : offsuit_23456_rank,
-                (A4567_offsuit_rank,4) : offsuit_34567_rank,
-                (A5678_offsuit_rank,5) : offsuit_45678_rank,
-                (A6789_offsuit_rank,6) : offsuit_56789_rank,
-                (A789T_offsuit_rank,7) : offsuit_6789T_rank,
-                (A89TJ_offsuit_rank,8) : offsuit_789TJ_rank,
-                (A9TJQ_offsuit_rank,9) : offsuit_89TJQ_rank,
+                (offsuit_A3456_rank,3) : offsuit_23456_rank,
+                (offsuit_A4567_rank,4) : offsuit_34567_rank,
+                (offsuit_A5678_rank,5) : offsuit_45678_rank,
+                (offsuit_A6789_rank,6) : offsuit_56789_rank,
+                (offsuit_A789T_rank,7) : offsuit_6789T_rank,
+                (offsuit_A89TJ_rank,8) : offsuit_789TJ_rank,
+                (offsuit_A9TJQ_rank,9) : offsuit_89TJQ_rank,
 
                 (onsuit_A3456_rank,3)  : onsuit_23456_rank,
                 (onsuit_A4567_rank,4)  : onsuit_34567_rank,
