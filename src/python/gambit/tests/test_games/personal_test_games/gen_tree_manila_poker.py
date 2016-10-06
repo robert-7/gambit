@@ -13,6 +13,7 @@ import gambit, deuces
 import math_extended
 from utils import compute_time_of
 import common
+import deuces_wrapper
 
 
 class Poker(gambit.Game):
@@ -59,6 +60,13 @@ class Poker(gambit.Game):
         self.decks         = [[],[],[],[],[],[],[],[],[],[]] # there are 10
         self.cards_in_play = [None, None, None, None, None, None, None, None, None]
 
+        # testing
+        self.DEBUG = True
+
+        # mappings for Manila Poker
+        self.mpm = deuces_wrapper.Manila_Poker_Mapping()
+
+        # template subtree holders
         self.tree      = None
         self.bst_hole  = None
         self.bst_flop  = None
@@ -68,9 +76,6 @@ class Poker(gambit.Game):
         self.cst_flop  = None
         self.cst_turn  = None
         self.cst_river = None
-
-        # testing
-        self.DEBUG = True
 
 
 def create_game(cfg):
@@ -399,7 +404,7 @@ def handle_flop(g, i, p1_bet):
                     child = g.tree.root.children[i].children[0].children[0].children[j]
                 else:
                     child = g.tree.root.children[i].children[1].children[0].children[j]
-                winner = calculate_winner(g)
+                winner = deuces_wrapper.return_winner(g)
                 if winner == g.tree.players[0]:
                     if p1_bet:
                         child.outcome = g.PLAYER_1_WINS_SMALL
@@ -442,35 +447,6 @@ def multiply_outcome(g, description, multiple):
     new_outcome[0] =  multiple
     new_outcome[1] = -multiple
     return new_outcome
-
-
-def calculate_winner(g):
-    '''
-    Given 5 cards, calculates who has the stronger hand.
-    '''
-    player_1_hand = [
-        deuces.Card.new(g.cards_in_play[0]),
-        deuces.Card.new(g.cards_in_play[1])
-    ]
-    player_2_hand = [
-        deuces.Card.new(g.cards_in_play[2]),
-        deuces.Card.new(g.cards_in_play[3])
-    ]
-    board = [
-        deuces.Card.new(g.cards_in_play[4]),
-        deuces.Card.new(g.cards_in_play[5]),
-        deuces.Card.new(g.cards_in_play[6])
-    ]
-
-    # evaluator = deuces.Evaluator()
-    # player_1_hand_value = evaluator.evaluate(board, player_1_hand)
-    # player_2_hand_value = evaluator.evaluate(board, player_2_hand)
-    if player_1_hand_value < player_2_hand_value:
-        return g.tree.players[0]
-    elif player_1_hand_value > player_2_hand_value:
-        return g.tree.players[1]
-    else:
-        return None
 
 
 if __name__ == '__main__':

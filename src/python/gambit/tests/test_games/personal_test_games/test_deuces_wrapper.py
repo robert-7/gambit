@@ -64,7 +64,8 @@ if __name__ == "__main__":
     g.tree.players.add("Rose")
     g.tree.players.add("Colin")
     g.DEBUG = True
-    
+    g.mpm = Manila_Poker_Mapping()
+
     # should raise error since 5 of hearts is not allowed in a deck with 6s and higher
     assert_raises(ValueError, 
                   test.test_return_winner, 
