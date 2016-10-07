@@ -4,8 +4,12 @@ from deuces.lookup import LookupTable
 import math_extended
 
 
-class LookupTable(object):
+class General_Poker_LookupTable(object):
     """
+    Here we create a lookup table which maps:
+        5 card hand's unique prime product => rank in range [1, 7462]
+    Examples:
+
     Number of Distinct Hand Values for Standard Poker Game with 13 Values:
     Straight Flush   10          [(10 choose 1)]
     Four of a Kind   156         [(13 choose 2) * (2 choose 1)]
@@ -19,9 +23,12 @@ class LookupTable(object):
     -------------------------
     TOTAL            7462
     
-    Here we create a lookup table which maps:
-        5 card hand's unique prime product => rank in range [1, 7462]
-    Examples:
+    If the Ace DOES NOT Wrap around, then there are still 7462 Distinct Hand Values. Reasoning:
+    -- 1 Less Straight Flush
+    ---- And therefore, 1 More Flush
+    -- 1 Less Straight
+    ---- And therefore, 1 More High Card
+
     * Royal flush (best hand possible)          => 1
     * 7-5-4-3-2 unsuited (worst hand possible)  => 7462
 
@@ -40,22 +47,16 @@ class LookupTable(object):
     """
 
 
-    def __init__(self, n):
-        self.STRAIGHT_FLUSH  = 0
-        self.FOUR_OF_A_KIND  = 1
-        # if n == 6 or n == 7:
-        #     self.FLUSH           = 2
-        #     self.FULL_HOUSE      = 3
-        #     self.THREE_OF_A_KIND = 4         
-        #     self.STRAIGHT        = 5
-        # else:
-        self.FULL_HOUSE      = 2
-        self.FLUSH           = 3         
-        self.STRAIGHT        = 4
-        self.THREE_OF_A_KIND = 5
-        self.TWO_PAIR        = 6
-        self.ONE_PAIR        = 7
-        self.HIGH_CARD       = 8
+    def __init__(self):
+        self.STRAIGHT_FLUSH  = 1
+        self.FOUR_OF_A_KIND  = 2
+        self.FULL_HOUSE      = 3
+        self.FLUSH           = 4         
+        self.STRAIGHT        = 5
+        self.THREE_OF_A_KIND = 6
+        self.TWO_PAIR        = 7
+        self.ONE_PAIR        = 8
+        self.HIGH_CARD       = 9
 
 
 def get_total_distinct_number(n, s):
@@ -63,7 +64,7 @@ def get_total_distinct_number(n, s):
     total = 0
 
     # iterating over all possible hands...
-    for r in range(9):
+    for r in range(1,10):
         total += get_distinct_number(r, n, s)
     return total
 
@@ -120,6 +121,11 @@ def get_distinct_number(hand_rank, n, s):
     else:
         raise Exception("{} is not a possible string for hand_rank".format(hand_rank))
 
+    # we want to output the number of distinct hands for each class
+    class_str = LookupTable.RANK_CLASS_TO_STRING[hand_rank]
+    class_count = "The number of different ways to obtain a {} with {} cards is: {}"
+    print(class_count.format(class_str.ljust(15), str(n).ljust(2), dc))
+
     return dc
 
 
@@ -129,10 +135,10 @@ if __name__ == "__main__":
     s = 4
 
     # create the lookup table
-    r = LookupTable(n)
+    r = General_Poker_LookupTable()
 
     # for each number of values, we want to print out
-    for n in range(1, 20):
+    for n in range(1, 14):
         
         # the total distinct number of hands
         td = get_total_distinct_number(n, s)
@@ -141,3 +147,4 @@ if __name__ == "__main__":
         pf = "Number of distinct ranks for {} number of cards: {}"
         
         print(pf.format(n, td))
+        print()
