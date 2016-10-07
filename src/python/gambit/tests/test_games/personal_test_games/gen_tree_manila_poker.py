@@ -5,6 +5,8 @@ from distutils import util
 from fractions import Fraction
 from numbers import Rational
 from ConfigParser import ConfigParser
+import itertools
+# import pdb
 
 # libraries from GitHub
 import gambit, deuces
@@ -57,7 +59,33 @@ class Poker(gambit.Game):
         self.PLAYER_2_WINS_BIG   = None
 
         # this will hold the cards that are currently being considered in the game
-        self.decks         = [[],[],[],[],[],[],[],[],[],[]] # there are 10
+        # decks[0] = before any cards are deal
+        # decks[1] = after dealing both cards to player 1
+        # decks[2] = after dealing both cards to player 2
+        # decks[3] = after dealing all flop cards
+        # decks[4] = after dealing the turn card
+        # decks[5] = after dealing the river card
+        self.decks         = [[],[],[],[],[],[]] # there are 6
+
+        # we need to globally keep track of the index we're on for each child
+        # members_index[0] = hole children index
+        # members_index[0] = flop children index
+        # members_index[0] = turn children index
+        # members_index[0] = river children index
+        self.members_index = [0,0,0,0]
+        
+        # we need to globally keep track of the betting round we're on
+        self.deal_sizes    = [self.HAND_SIZE,
+                              self.FLOP_SIZE,
+                              self.TURN_SIZE,
+                              self.RIVER_SIZE]
+
+        # we need to globally keep track of the name of the round
+        self.round_names   = ["Hole",
+                              "Flop",
+                              "Turn",
+                              "River"]
+
         self.cards_in_play = [None, None, None, None, None, None, None, None, None]
 
         # testing
@@ -201,168 +229,215 @@ def create_tree(args):
 
     # we want to start this tree by creating a chance node
     create_cst(g=g, 
-               root=g.tree.root, 
-               deal_size=g.HAND_SIZE, 
-               repeat=len(g.tree.players), 
-               deck=0,
-               combinations=1)
+               root=g.tree.root,
+               repeat=len(g.tree.players)-1, 
+               bet_round=1)
 
 
-def create_cst(g, root, deal_size, repeat, bet_round, combinations):
+def create_cst(g, root, repeat, bet_round):
     """
     g: the game itself
-    root: the 
-    deal_size: the number of cards we'll deal   
+    root: the node for which we'd like to create the cst   
     repeat: the number of times we'll deal the cards
-    deck: or current deck of cards
     combinations: the number combinations we have so far
     """
 
-    # for number in range(repeat):
-        
-    #     # Calculate the number of card combinations for this round of cards getting flipped
-    #     CARDS_COMBINATIONS *= math_extended.combinations(len(decks[deck]), deal_size)
-
-    #     deck += 1
-    # # create the branches
-    # cst_tree.append_move(g.tree.players.chance, CARDS_COMBINATIONS)
-
-    # print "Created cst with this number of combinations: {}".format(CARDS_COMBINATIONS)
-
-    # if repeat > 1:
-    #     create_cst(g, root, deal_size, repeat-1, deck, combinations)
-    # if deal_size > 1:
-    #     create_cst(g, root, deal_size-1, repeat, deck, combinations)
+    # we want to hole on to the number of combinations we can deal out
+    number_of_deal_combinations = 1
     
-    # # look at the right deck and right slot to insert the card    
-    # i = get_current_index(deal_size, repeat, bet_index)
+    # get the number of cards we need to deal out
+    deal_size = get_deal_size(g, bet_round)
+
+    # get the deck size
+    deck_size = len(g.decks[get_decks_index(deal_size, repeat, bet_round)])
+
+    for number in range(repeat+1):
+
+        # Calculate the number of card combinations for this round of cards getting flipped
+        number_of_deal_combinations *= math_extended.combinations(deck_size, deal_size)
+
+        # adjust the deal_size in case we need have one more dealing
+        deck_size -= deal_size
+
+    # label the chance node
+    round_name = get_round_name(g, bet_round)
+    root.label = "Chance node for {} Round".format(round_name)
     
-    # # for every card
-    # for c in range(len(decks[i])):
-    #     g.cards_in_play[i] = decks[c]
+    # create the branches
+    iset_chance = root.append_move(g.tree.players.chance, number_of_deal_combinations)
 
-    # look at the right deck and right slot to insert the card    
-    ci = get_current_index(deal_size, repeat, bet_index)
+    # populated the branches that were just created
+    g.members_index[get_members_index_index(deal_size, repeat, bet_round)] = 0
+    populate_cst(g, iset_chance, repeat, bet_round, [])
 
-    # need to keep track of the number of cards left to deal
-    cards = deal_size
-    while cards != 0:
+def populate_cst(g, iset_chance, repeat, bet_round, all_cards):
 
-        # we need the index of the card we're interested
-        for c in range(len(decks[ci])):
+    # get the number of cards we need to deal out
+    deal_size = get_deal_size(g, bet_round)
 
-            # assign the card at that index to 
-            g.cards_in_play[ci] = decks[ci][c]
+    # we want to keep a backup of all_cards
+    temp_all_cards = all_cards[:]
 
-            # update the next deck -- should only have cards after the current index
-            decks[ci+1] = decks[ci][c+1:]
-            ci += 1
+    # get the decks we'll be modifying
+    current_deck_index = get_decks_index(deal_size, repeat, bet_round)
+    current_deck = g.decks[current_deck_index]
+    next_deck    = g.decks[current_deck_index+1]
+    deck_of_indices = range(len(current_deck))
 
-        # update the number of cards left to deal
-        cards -= 1
+    # get all possible combinations we want to iterate over
+    all_combinations = list(itertools.combinations(deck_of_indices, deal_size))
+    for deal in all_combinations:
 
+        # for every combination...
+        for i in range(len(deal)):
 
+            # save the current card to cards_in_play
+            cards_in_play_index = get_cards_in_play_index(deal_size, repeat, bet_round)
+            g.cards_in_play[cards_in_play_index+i] = current_deck[deal[i]]
+            all_cards.append(current_deck[deal[i]])
 
+            # copy whatever cards we need to the next deck
+            if i == 0:
+                next_deck += current_deck[:deal[i]]
+            if i == len(deal)-1:
+                next_deck += current_deck[deal[i]+1:]
+            else:
+                next_deck += current_deck[deal[i]+1:deal[i+1]]
 
+        # if we're not repeating, then we can continue to creating the bet branch
+        if repeat == 0:
 
-
-
-
-
-    # Chance node set probability of each chance action
-    NUMBER_OF_PLAYERS       = len(g.tree.players)
-    HOLE_CARDS              = g.HAND_SIZE * NUMBER_OF_PLAYERS
-    HOLE_CARDS_COMBINATIONS = math_extended.combinations(g.DECK_SIZE, g.HAND_SIZE) * \
-                              math_extended.combinations(g.DECK_SIZE - g.HAND_SIZE, g.HAND_SIZE)
-    
-    # create the chance node and set the number of nodes
-    total_start_time = time()
-    start_time = time()
-    print "Number of combinations: {}".format(HOLE_CARDS_COMBINATIONS)
-    iset_r1 = g.tree.root.append_move(g.tree.players.chance, HOLE_CARDS_COMBINATIONS)  
-
-    # for each possible hand for player 1...
-    hole_cards_deal_branch_counter = -1
-    infoset_counter = -1
-    for index_card1 in range(len(CARD_LABELS)-1):
-        print("Number of branches completed: {}".format(hole_cards_deal_branch_counter))
-        print("Time taken to create these branches: {} seconds".format(time() - start_time))
-        start_time = time()
-        for index_card2 in range(index_card1+1, len(CARD_LABELS)):
-            g.cards_in_play[0] = CARD_LABELS[index_card1]
-            g.cards_in_play[1] = CARD_LABELS[index_card2]
-            g.deck_h1 = CARD_LABELS[:index_card1] +              \
-                      CARD_LABELS[index_card1+1:index_card2] + \
-                      CARD_LABELS[index_card2+1:]
+            # get the current child index... 
+            member_index_index = get_members_index_index(deal_size, repeat, bet_round)
             
-            # ... and for each possible hand for player 2...
-            for index_card3 in range(len(g.deck_h1)-1):
-                for index_card4 in range(index_card3+1, len(g.deck_h1)):
-                    g.cards_in_play[2] = g.deck_h1[index_card3]
-                    g.cards_in_play[3] = g.deck_h1[index_card4]
-                    g.deck_h2 = g.deck_h1[:index_card3] +              \
-                              g.deck_h1[index_card3+1:index_card4] + \
-                              g.deck_h1[index_card4+1:]
+            # get the current child itself...
+            child = iset_chance.members[0].children[g.members_index[member_index_index]]
 
-                    # ... we need to create a branch for that chance action. 
-                    hole_cards_deal_branch_counter += 1
-                    iset_round1_label = "{} - {},{}; {} - {},{}".format(g.tree.players[0].label, 
-                                                                        g.cards_in_play[0], 
-                                                                        g.cards_in_play[1], 
-                                                                        g.tree.players[1].label, 
-                                                                        g.cards_in_play[2], 
-                                                                        g.cards_in_play[3])
-                    iset_r1.actions[hole_cards_deal_branch_counter].label = iset_round1_label
-                    
-                    # for each chance action, we need to create player 1's betting and checking branches
-                    iset = g.tree.root.children[hole_cards_deal_branch_counter].append_move(g.tree.players[0], 2)
-                    iset.label = "{}'s' Decision Node".format(g.tree.players[0].label)
-                    iset.actions[0].label = "{} bets".format(g.tree.players[0].label)
-                    iset.actions[1].label = "{} checks".format(g.tree.players[0].label)
+            # if g.DEBUG:
+            #     print("append_move passed... member_index_index={}, g.members_index[member_index_index]={}, all_cards={}, current_deck={}"
+            #         .format(                 member_index_index,    g.members_index[member_index_index],    all_cards,    current_deck))
+            #     raw_input()
 
-                    # at the end of player 1's betting branch, 
-                    # we need to create a player 2's choice node that has calling and a folding branches
-                    iset = g.tree.root.children[hole_cards_deal_branch_counter].children[0].append_move(g.tree.players[1], 2)
-                    iset.label = "{}'s' Response Node".format(g.tree.players[1].label)
-                    iset.actions[0].label = "{} calls".format(g.tree.players[1].label)
-                    iset.actions[1].label = "{} folds".format(g.tree.players[1].label)
+            # try:
+            #     iset_bet = child.append_move(g.tree.players[0], 2)
+            # except Exception:
+            #     raise ValueError("append_move failed... member_index_index={}, g.members_index[member_index_index]={}".format(member_index_index, g.members_index[member_index_index]))
 
-                    # at the end of player 1's betting branch, 
-                    # we need to create a player 2's choice node that has calling and a folding branches
-                    iset = g.tree.root.children[hole_cards_deal_branch_counter].children[1].append_move(g.tree.players[1], 2)
-                    iset.label = "{}'s' Response Node".format(g.tree.players[1].label)
-                    iset.actions[0].label = "{} checks".format(g.tree.players[1].label)
+            if bet_round == 1: 
+                start_time = time()
+                print("got here")
+            
+            create_bst(g, child, iset_chance, deal_size, bet_round)
+            
+            if bet_round == 1: 
+                print("finished tree for member={} in {} seconds").format(str(g.members_index[member_index_index]).ljust(5), time()-start_time)
 
-                    # handle the flop when player 1 checks
-                    handle_flop(g, g.deck_h2, hole_cards_deal_branch_counter, False)
 
-                    # handle the flop when player 1 bets and player 2 calls
-                    handle_flop(g, g.deck_h2, hole_cards_deal_branch_counter, True)
+            # increment member_index since we're done creating this tree branch
+            g.members_index[member_index_index] += 1
 
-    print ("Completed making the tree in {} seconds.".format(time() - start_time))
-    return g
 
-# def get_curret_index(repeat, bet_round):
+        # otherwise, we're in the hole_cards round and we need to repeat one more time to get player 2s cards
+        else:
+            populate_cst(g, iset_chance, repeat-1, bet_round, all_cards)
+        
+        # reset the next deck and all_cards to before we messed with them
+        next_deck     = []
+        all_cards     = temp_all_cards[:]
 
-#     if   repeat == 1 and bet_round == 1: deck_index = 0
-#     elif repeat == 2 and bet_round == 1: deck_index = 1
-#     elif repeat == 1 and bet_round == 2: deck_index = 2
-#     elif repeat == 1 and bet_round == 3: deck_index = 3
-#     elif repeat == 1 and bet_round == 4: deck_index = 4
-#     else: raise ValueError("Bad values for repeat ({}) and/or bet round ({})".format(repeat, bet_round))
-#     return deck_index
+def create_bst(g, root, iset_bet, deal_size, bet_round):
+    
+    # player names
+    p1 = g.tree.players[0].label
+    p2 = g.tree.players[1].label
 
-def get_current_index(deal_size, repeat, bet_round):
+    # create the bst tree template
+    root.label = "{}'s' Decision Node".format(p1)
 
-    if   deal_size == 1 and repeat == 1 and bet_round == 1: cards_in_play_index = 0
-    elif deal_size == 2 and repeat == 1 and bet_round == 1: cards_in_play_index = 1
-    elif deal_size == 1 and repeat == 2 and bet_round == 1: cards_in_play_index = 2
-    elif deal_size == 2 and repeat == 2 and bet_round == 1: cards_in_play_index = 3
-    elif deal_size == 1 and repeat == 1 and bet_round == 2: cards_in_play_index = 4
-    elif deal_size == 2 and repeat == 1 and bet_round == 2: cards_in_play_index = 5
-    elif deal_size == 3 and repeat == 1 and bet_round == 2: cards_in_play_index = 6
-    elif deal_size == 1 and repeat == 1 and bet_round == 3: cards_in_play_index = 7
-    elif deal_size == 1 and repeat == 1 and bet_round == 4: cards_in_play_index = 8
+    # we need to create player 1's betting and checking branches
+    p1_iset = root.append_move(g.tree.players[0], 2)
+    p1_iset.actions[0].label = "{} bets".format(p1)
+    p1_iset.actions[1].label = "{} checks".format(p1)
+
+    # at the end of player 1's betting branch, 
+    #   we need to create a player 2's choice node that has calling and a folding branches
+    root.children[0].label = "{}'s Response Node given {} Bet".format(p2, p1)
+    p1_bet_p2_iset = root.children[0].append_move(g.tree.players[1], 2)
+    p1_bet_p2_iset.actions[0].label = "{} calls".format(p2)
+    p1_bet_p2_iset.actions[1].label = "{} folds".format(p2)
+
+    # at the end of player 1's checking branch, 
+    #   we need to create a chance node to continue the game
+    # root.children[1].label = "{}'s Response Node given {} Checked".format(p2, p1)
+    if not is_last_round(g, bet_round):
+        create_cst(g, root.children[1], 0, bet_round+1)
+    else:
+        root.children[1].label = "Terminal node. No More Rounds."
+
+    # at the end of player 2's calling branch, 
+    #   we want to label the node and create a chance node to continue the game
+    if not is_last_round(g, bet_round):
+        create_cst(g, root.children[0].children[0], 0, bet_round+1)
+    else:
+        root.children[0].children[0].label = "Terminal node. No More Rounds."
+    
+    # at the end of player 2's calling branch,
+    #   we have a terminal node that 
+    root.children[0].children[1].label = "Terminal node. {} folds.".format(p2)
+
+def is_last_round(g, bet_round):
+    number_of_rounds = get_number_of_rounds(g)
+    last_round = False
+    if bet_round == number_of_rounds:
+        last_round = True
+    elif bet_round > number_of_rounds:
+        raise Exception("bet_round ({}) exceeded the maximum number of rounds ({})".format(bet_round, number_of_rounds))
+    return last_round
+
+def get_number_of_rounds(g):
+    number_of_rounds = len(g.round_names)
+    return number_of_rounds
+
+def get_round_name(g, bet_round):
+    round_name_index = get_round_name_index(bet_round)
+    round_name = g.round_names[round_name_index]
+    return round_name
+
+def get_round_name_index(bet_round):
+    round_name_index = get_deal_size_index(bet_round)
+    return round_name_index
+
+def get_deal_size(g, bet_round):
+    deal_size_index = get_deal_size_index(bet_round)
+    deal_size = g.deal_sizes[deal_size_index]
+    return deal_size
+
+def get_deal_size_index(bet_round):
+    deal_size_index = bet_round - 1
+    return deal_size_index
+
+def get_decks_index(deal_size, repeat, bet_round):
+    if   deal_size == 2 and repeat == 1 and bet_round == 1: decks_index = 0
+    elif deal_size == 2 and repeat == 0 and bet_round == 1: decks_index = 1
+    elif deal_size == 3 and repeat == 0 and bet_round == 2: decks_index = 2
+    elif deal_size == 1 and repeat == 0 and bet_round == 3: decks_index = 3
+    elif deal_size == 1 and repeat == 0 and bet_round == 4: decks_index = 4
+    else: raise ValueError("Bad values for deal_size ({}), repeat ({}), and/or bet round ({})".format(deal_size, repeat, bet_round))
+    return decks_index
+
+def get_members_index_index(deal_size, repeat, bet_round):
+    decks_index = get_decks_index(deal_size, repeat, bet_round)
+    if        decks_index == 0: members_index_index = 0
+    elif 1 <= decks_index <= 4: members_index_index = decks_index - 1
+    return members_index_index
+
+def get_cards_in_play_index(deal_size, repeat, bet_round):
+
+    if   deal_size == 2 and repeat == 1 and bet_round == 1: cards_in_play_index = 0
+    elif deal_size == 2 and repeat == 0 and bet_round == 1: cards_in_play_index = 2
+    elif deal_size == 3 and repeat == 0 and bet_round == 2: cards_in_play_index = 4
+    elif deal_size == 1 and repeat == 0 and bet_round == 3: cards_in_play_index = 7
+    elif deal_size == 1 and repeat == 0 and bet_round == 4: cards_in_play_index = 8
     else: raise ValueError("Bad values for deal_size ({}), repeat ({}), and/or bet round ({})".format(deal_size, repeat, bet_round))
     return cards_in_play_index
 
@@ -454,7 +529,10 @@ if __name__ == '__main__':
     # create the game tree and saver objects, solve the game, print the solutions to a file, print the game
     s = compute_time_of(0, "Creating Saver", common.create_saver, ())
     g = compute_time_of(1, "Creating Game", create_game, (sys.argv,))
-    compute_time_of(2, "Creating Tree", create_tree, (g,))
-    solutions = compute_time_of(3, "Solving Game", common.solve_game, (g,))
-    compute_time_of(4, "Printing Solutions", common.print_solutions, (solutions,s)) 
+    try:
+       compute_time_of(2, "Creating Tree", create_tree, (g,))
+        # solutions = compute_time_of(3, "Solving Game", common.solve_game, (g,))
+        # compute_time_of(4, "Printing Solutions", common.print_solutions, (solutions,s)) 
+    except KeyboardInterrupt:
+        pass
     compute_time_of(5, "Printing Game", common.print_game, (g,s))
