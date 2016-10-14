@@ -59,7 +59,9 @@ if __name__ == "__main__":
                                     ACE_WRAPS=True,
                                     LOWEST_CARD=2, 
                                     HIGHEST_CARD=14, 
-                                    NUMBER_OF_SUITS=4)
+                                    NUMBER_OF_SUITS=4,
+                                    NUMBER_OF_ROUNDS=4,
+                                    DEBUG=True)
     g.tree = gambit.Game.new_tree()
     g.tree.players.add("Rose")
     g.tree.players.add("Colin")
@@ -179,6 +181,14 @@ if __name__ == "__main__":
     # player 2 is still a straight flush winner due to Ace Wrap having one less value than 6-10 straight
     test.test_return_winner(g=g, 
                             cards_in_play=["Ah", "Jc"] + ["Th", "8c"] + ["6h", "7h", "8h", "9h", "8s"],  
+                            ACE_WRAPS = True,
+                            LOWEST_CARD=6, 
+                            NUMBER_OF_SUITS=4, 
+                            player=g.tree.players[1])
+
+    # player 2 is still a straight flush winner due to Ace Wrap having one less value than 6-10 straight
+    test.test_return_winner(g=g, 
+                            cards_in_play=["Ah", "Ad"] + ["6c", "Ks"] + ["6h", "7h", "8h", "9h", "6d"],  
                             ACE_WRAPS = True,
                             LOWEST_CARD=6, 
                             NUMBER_OF_SUITS=4, 

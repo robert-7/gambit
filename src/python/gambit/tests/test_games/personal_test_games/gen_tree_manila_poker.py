@@ -11,7 +11,7 @@ import itertools
 import gambit, deuces
 
 # custom libraries
-import math_extended
+import math_extended as math
 from utils import compute_time_of
 import common
 import deuces_wrapper
@@ -357,7 +357,7 @@ def create_cst(g, root, repeat, bet_round):
     for number in number_of_dealings_iterable:
 
         # Calculate the number of card combinations for this round of cards getting flipped
-        number_of_deal_combinations *= math_extended.combinations(deck_size, deal_size)
+        number_of_deal_combinations *= math.combinations(deck_size, deal_size)
 
         # adjust the deal_size in case we need have one more dealing
         deck_size -= deal_size
@@ -806,6 +806,80 @@ def multiply_outcome(g, description, multiple):
     new_outcome[0] =  multiple
     new_outcome[1] = -multiple
     return new_outcome
+
+
+def min_val_rec(x, MAX, length):
+    
+    # error handler
+    if x < 0 or type(x) is not int:
+        error_msg = "Can't calculate a recursion for x={}"
+        raise Exception(error_msg.format(x))
+
+    min_value = 0
+    if length == 3:
+        for i in range((MAX-1)-x, MAX-1): # we don't include MAX-1
+            min_value += math.sum_first_n_values(i)
+
+    elif length == 2:
+        for i in range((MAX)-x, MAX): # we don't include MAX
+            min_value += i
+
+    return min_value
+
+def get_order(cards, MAX):
+    '''
+    Return the index of the the cst that handles creating the subtree for these cards
+    '''
+
+    # if we just passed in an int, then return the int -- it's its own index
+    if type(cards) is int:
+        cards = [cards] 
+    
+    # if we don't pass in a list
+    if type(cards) is not list:
+        error_msg = "cards must be an int or a list. cards currently is of type {}"
+        raise Exception(error_msg.format(type(cards)))
+
+    # empty lists are bad
+    if len(cards) == 0:
+        error_msg = "The length of cards should not be zero."
+        raise Exception(error_msg)
+
+    # we don't handle lists greater than length 3
+    if len(cards) > 3:
+        error_msg = "This method is not implemented for cards with length greater than 3."
+        raise Exception(error_msg)
+
+    # values in the lsit should be ints
+    for card in cards:
+        if type(card) is not int:
+            error_msg = "cards should have ints as values; not {}"
+            raise Exception(error_msg.format(type(card)))
+ 
+    # if cards[0] is greater than MAX, that's a problem
+    if cards[0] >= MAX:
+        error_msg = "cards[0]={} which is greater than MAX=({})"
+        raise Exception(error_msg.format(cards[0], MAX))
+
+    # if we just passed in an int, then return the int -- it's its own index
+    if len(cards) == 1:
+        return cards[0]
+
+    # save the value of the first card
+    x = cards[0]
+    min_index = 0
+
+    # then we have to find the minimum index, given the first card:
+    min_index = min_val_rec(x, MAX, len(cards))
+
+    modifier = x + 1
+    for i in range(1, len(cards)):
+        cards[i] -= modifier
+    MAX -= modifier
+
+    order = min_index + get_order(cards[1:], MAX)
+
+    return order
 
 
 if __name__ == '__main__':
