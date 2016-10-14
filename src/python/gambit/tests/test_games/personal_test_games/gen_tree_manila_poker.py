@@ -827,6 +827,34 @@ def min_val_rec(x, MAX, length):
     return min_value
 
 
+def checks(cards, MAX, expected_deck_sizes):
+    
+    # if we're looking at an int, change to a list
+    if type(expected_deck_sizes) is int:
+        expected_deck_sizes = [expected_deck_sizes]
+
+    # if we don't pass in a list
+    if type(cards) is not list:
+        error_msg = "cards must be an int or a list. cards currently is of type {}"
+        raise Exception(error_msg.format(type(cards)))
+
+    # we don't handle lists greater than length 7
+    if len(cards) not in expected_deck_sizes:
+        error_msg = "The length of cards is {} and should be {}."
+        raise Exception(error_msg.format(len(cards), expected_deck_sizes))
+
+    # values in the list should be ints
+    for card in cards:
+        if type(card) is not int:
+            error_msg = "cards should have ints as values; not {}"
+            raise Exception(error_msg.format(type(card)))
+        
+        # if cards[0] is greater than MAX, that's a problem
+        if card >= MAX:
+            error_msg = "card={} which is greater than MAX=({})"
+            raise Exception(error_msg.format(card, MAX))
+
+
 def get_order(cards, MAX):
     '''
     Return the index of the the cst that handles creating the subtree for these cards
@@ -836,31 +864,8 @@ def get_order(cards, MAX):
     if type(cards) is int:
         cards = [cards] 
     
-    # if we don't pass in a list
-    if type(cards) is not list:
-        error_msg = "cards must be an int or a list. cards currently is of type {}"
-        raise Exception(error_msg.format(type(cards)))
-
-    # empty lists are bad
-    if len(cards) == 0:
-        error_msg = "The length of cards should not be zero."
-        raise Exception(error_msg)
-
-    # we don't handle lists greater than length 3
-    if len(cards) > 3:
-        error_msg = "This method is not implemented for cards with length greater than 3."
-        raise Exception(error_msg)
-
-    # values in the lsit should be ints
-    for card in cards:
-        if type(card) is not int:
-            error_msg = "cards should have ints as values; not {}"
-            raise Exception(error_msg.format(type(card)))
- 
-    # if cards[0] is greater than MAX, that's a problem
-    if cards[0] >= MAX:
-        error_msg = "cards[0]={} which is greater than MAX=({})"
-        raise Exception(error_msg.format(cards[0], MAX))
+    # checks to see if cards is a good list of cards
+    checks(cards, MAX, [1,2,3])
 
     # if we just passed in an int, then return the int -- it's its own index
     if len(cards) == 1:
@@ -883,92 +888,72 @@ def get_order(cards, MAX):
     return order
 
 
+def get_order_helper(cards, MAX, expected_deck_size, pf_n):
+    
+    # checks to see if cards is a good list of cards
+    checks(cards, MAX, expected_deck_size)
+    
+    modified_cards = []
+    reverse_cards = cards[:pf_n]
+    reverse_cards.reverse()
+
+    for modified_card in cards[pf_n:]:
+        for compare_card in reverse_cards:
+            if modified_card > compare_card:
+                modified_card -= 1
+        modified_cards.append(modified_card)
+
+    # relative order
+    return_order = get_order(modified_cards, MAX-pf_n)
+
+    return return_order
+
+
 def get_order_hole(cards, MAX):
     
-    # if we don't pass in a list
-    if type(cards) is not list:
-        error_msg = "cards must be an int or a list. cards currently is of type {}"
-        raise Exception(error_msg.format(type(cards)))
-
-    # we don't handle lists greater than length 3
-    if len(cards) != 4:
-        error_msg = "The length of cards is {} and should be 4."
-        raise Exception(error_msg.format(len(cards)))
-
-    # values in the list should be ints
-    for card in cards:
-        if type(card) is not int:
-            error_msg = "cards should have ints as values; not {}"
-            raise Exception(error_msg.format(type(card)))
-        
-        # if cards[0] is greater than MAX, that's a problem
-        if card >= MAX:
-            error_msg = "card={} which is greater than MAX=({})"
-            raise Exception(error_msg.format(card, MAX))
+    # checks to see if cards is a good list of cards
+    order2 = get_order_helper(cards, MAX, 4, 2)
+    
+    # number of combinations given a fixed first pair
+    combos_given_pair1 = math.combinations(MAX-2, 2)
 
     # order of the first pair
     order1 = get_order(cards[0:2], MAX)
-    
-    modified_cards = []
-    reverse_cards = cards[:2]
-    reverse_cards.reverse()
-
-    for card_hole2 in cards[2:]:
-        for card_hole1 in reverse_cards:
-            if card_hole2 > card_hole1:
-                card_hole2 -= 1
-        modified_cards.append(card_hole2)
-
-    # relative order of the second pair
-    order2 = get_order(modified_cards, MAX-2)
-
-    # number of combinations given a fixed first pair
-    combos_given_pair1 = math.combinations(MAX-2, 2)
 
     # the actual order, given both pairs
     order = (order1 * combos_given_pair1) + order2
 
     return order
     
+
 def get_order_hole_flop(cards, MAX):
-    
-    # if we don't pass in a list
-    if type(cards) is not list:
-        error_msg = "cards must be an int or a list. cards currently is of type {}"
-        raise Exception(error_msg.format(type(cards)))
 
-    # we don't handle lists greater than length 3
-    if len(cards) != 7:
-        error_msg = "The length of cards is {} and should be 4."
-        raise Exception(error_msg.format(len(cards)))
-
-    # values in the list should be ints
-    for card in cards:
-        if type(card) is not int:
-            error_msg = "cards should have ints as values; not {}"
-            raise Exception(error_msg.format(type(card)))
-        
-        # if cards[0] is greater than MAX, that's a problem
-        if card >= MAX:
-            error_msg = "card={} which is greater than MAX=({})"
-            raise Exception(error_msg.format(card, MAX))
+    order_flop = get_order_helper(cards, MAX, 7, 4)
 
     order_hole = get_order_hole(cards[:4], MAX)
 
-    modified_cards = []
-    reverse_cards = cards[:4]
-    reverse_cards.reverse()
-
-    for card_flop in cards[4:]:
-        for card_hole in reverse_cards:
-            if card_flop > card_hole:
-                card_flop -= 1
-        modified_cards.append(card_flop)
-
-    # relative order of the second pair
-    order_flop = get_order(modified_cards, MAX-4)
-
     return (order_hole, order_flop)
+
+
+def get_order_hole_flop_turn(cards, MAX):
+
+    # checks to see if cards is a good list of cards
+    order_turn = get_order_helper(cards, MAX, 8, 7)
+
+    (order_hole, order_flop) = get_order_hole_flop(cards[:7], MAX)
+
+    return (order_hole, order_flop, order_turn)
+
+
+def get_order_hole_flop_turn_river(cards, MAX):
+
+    # checks to see if cards is a good list of cards
+    order_river = get_order_helper(cards, MAX, 9, 8)
+
+    (order_hole, order_flop, order_turn) = get_order_hole_flop(cards[:8], MAX)
+
+    return (order_hole, order_flop, order_turn, order_river)
+
 
 if __name__ == '__main__':
 
