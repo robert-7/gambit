@@ -41,12 +41,12 @@ if __name__ == "__main__":
     test.test_adjust_rank(323, 4, 323-156)
     test.test_adjust_rank(1000, 4, 1000-156)
     test.test_adjust_rank(1599, 4, 1599-156)
-    test.test_adjust_rank(1600, 5, 1600+858)
-    test.test_adjust_rank(1605, 5, 1605+858)
-    test.test_adjust_rank(1610, 5, 1610+858)
-    test.test_adjust_rank(1611, 6, 1611-10)
-    test.test_adjust_rank(2000, 6, 2000-10)
-    test.test_adjust_rank(2648, 6, 2648-10)
+    test.test_adjust_rank(1600, 5, 1600)
+    test.test_adjust_rank(1605, 5, 1605)
+    test.test_adjust_rank(1610, 5, 1610)
+    test.test_adjust_rank(1611, 6, 1611)
+    test.test_adjust_rank(2000, 6, 2000)
+    test.test_adjust_rank(2648, 6, 2648)
 
     # return the same value
     test.test_adjust_rank(2649, 7, 2649)
@@ -152,7 +152,7 @@ if __name__ == "__main__":
                             ACE_WRAPS = True,
                             LOWEST_CARD=6, 
                             NUMBER_OF_SUITS=4, 
-                            player=g.tree.players[1])
+                            player=g.tree.players[0])
 
     # player 1 has a full house, while player 2 has a flush... 
     # depending on the lowest card in the deck, player 1 or player 2 should win
@@ -188,7 +188,7 @@ if __name__ == "__main__":
 
     # player 2 is still a straight flush winner due to Ace Wrap having one less value than 6-10 straight
     test.test_return_winner(g=g, 
-                            cards_in_play=["Ah", "Ad"] + ["6c", "Ks"] + ["6h", "7h", "8h", "9h", "6d"],  
+                            cards_in_play=["Ah", "Ad"] + ["6c", "Th"] + ["6h", "7h", "8h", "9h", "6d"],  
                             ACE_WRAPS = True,
                             LOWEST_CARD=6, 
                             NUMBER_OF_SUITS=4, 

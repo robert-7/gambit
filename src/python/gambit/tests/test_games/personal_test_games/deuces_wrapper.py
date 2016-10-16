@@ -191,12 +191,4 @@ def adjust_rank(card_rank, class_rank):
     elif class_rank == LookupTable.MAX_TO_RANK_CLASS[LookupTable.MAX_FLUSH]:        
         card_rank -= LookupTable.MAX_FULL_HOUSE - LookupTable.MAX_FOUR_OF_A_KIND
 
-    # if we have a straight, we need to decrease our rank by the number of three of a kind possibilities
-    elif class_rank == LookupTable.MAX_TO_RANK_CLASS[LookupTable.MAX_STRAIGHT]:   
-        card_rank += LookupTable.MAX_THREE_OF_A_KIND - LookupTable.MAX_STRAIGHT
-
-    # if we have a three of a kind, we need to increase our rank by the number of full house possibilities
-    elif class_rank == LookupTable.MAX_TO_RANK_CLASS[LookupTable.MAX_THREE_OF_A_KIND]: 
-        card_rank -= LookupTable.MAX_STRAIGHT - LookupTable.MAX_FLUSH
-
     return card_rank
