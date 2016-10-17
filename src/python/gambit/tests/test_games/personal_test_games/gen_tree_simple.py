@@ -158,7 +158,7 @@ if __name__ == '__main__':
         sys.exit(2)
 
     # create the tree, solve the game, print the solutions to a file, print the game
-    g = compute_time_of(1, "Creating Tree", create_tree)
-    solutions = compute_time_of(2, "Solving Game", solve_game)
-    compute_time_of(3, "Printing Solutions", print_solutions) 
-    compute_time_of(4, "Printing Game", print_game) 
+    g = compute_time_of(1, "Creating Tree", create_tree, (None,))
+    solutions = compute_time_of(2, "Solving Game", solve_game, (None,))
+    compute_time_of(3, "Printing Solutions", print_solutions, (None,)) 
+    compute_time_of(4, "Printing Game", print_game, (None,)) 
