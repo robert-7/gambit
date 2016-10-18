@@ -99,8 +99,8 @@ class Manila_Poker_Evaluator(Evaluator):
             hand_rank = adjust_rank(hand_rank, hand_class)
 
         # for testing purposes
-        if g.DEBUG:
-            print("hand_rank={}, hand_class_str={}".format(hand_rank, hand_class_str))
+        # if g.DEBUG:
+        #     print("hand_rank={}, hand_class_str={}".format(hand_rank, hand_class_str))
 
         return hand_rank
 
@@ -152,13 +152,13 @@ def create_hands_and_board(g):
     hand2 = create_cards(g.cards_in_play[2:4])
     board = create_cards(g.cards_in_play[4:])
     
-    if g.DEBUG:
-        stdout.write("hand1=")
-        Card.print_pretty_cards(hand1)
-        stdout.write("hand2=")
-        Card.print_pretty_cards(hand2)
-        stdout.write("board=")
-        Card.print_pretty_cards(board)
+    # if g.DEBUG:
+    #     stdout.write("hand1=")
+    #     Card.print_pretty_cards(hand1)
+    #     stdout.write("hand2=")
+    #     Card.print_pretty_cards(hand2)
+    #     stdout.write("board=")
+    #     Card.print_pretty_cards(board)
 
     return hand1, hand2, board
 
