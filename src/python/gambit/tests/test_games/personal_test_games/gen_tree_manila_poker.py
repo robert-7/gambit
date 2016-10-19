@@ -53,7 +53,10 @@ class Poker(gambit.Game):
                  NUMBER_OF_SUITS,
                  NUMBER_OF_ROUNDS,
                  DEBUG,
-                 NODE):
+                 SPECIFIC_HOLE,
+                 SPECIFIC_FLOP,
+                 SPECIFIC_TURN,
+                 SPECIFIC_RIVER):
 
         # card values
         self.ACE_WRAPS       = ACE_WRAPS
@@ -127,7 +130,9 @@ class Poker(gambit.Game):
 
         # testing purposes
         self.DEBUG = DEBUG
-        self.set_debug_child_index(NODE)
+
+        # we also want to
+        self.set_debug_child_index(SPECIFIC_HOLE, SPECIFIC_FLOP, SPECIFIC_TURN, SPECIFIC_RIVER)
 
         # mappings for Manila Poker
         self.mpm = dw.Manila_Poker_Mapping()
@@ -138,11 +143,14 @@ class Poker(gambit.Game):
         # actions and players identifiers
         self.ids = Identifiers()
 
-    def set_debug_child_index(self, cards):
+    def set_debug_child_index(self, HOLE, FLOP, TURN, RIVER):
         '''
         We'd like to represent the node as [int, int, int, int] where 
         each int is supposed to represent the child index. 
         '''
+
+        # combine the cards to create
+        cards = HOLE + FLOP + TURN + RIVER
 
         # if no cards need to be filtered, we can just return
         if cards is None or len(cards) == 0:
@@ -335,7 +343,10 @@ def create_game(cfg):
             NUMBER_OF_SUITS  = int(cfg.get(PERSONAL_SECTION,"NUMBER_OF_SUITS"))
             NUMBER_OF_ROUNDS = int(cfg.get(PERSONAL_SECTION,"NUMBER_OF_ROUNDS"))
             DEBUG            = distutils.util.strtobool(cfg.get(TESTING_SECTION,"DEBUG"))
-            NODE             = literal_eval(cfg.get(TESTING_SECTION,"NODE"))
+            SPECIFIC_HOLE    = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_HOLE"))
+            SPECIFIC_FLOP    = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_FLOP"))
+            SPECIFIC_TURN    = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_TURN"))
+            SPECIFIC_RIVER   = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_RIVER"))
 
         
         # values added as arguments
@@ -408,7 +419,10 @@ def create_game(cfg):
               NUMBER_OF_SUITS=NUMBER_OF_SUITS,
               NUMBER_OF_ROUNDS=NUMBER_OF_ROUNDS,
               DEBUG=DEBUG,
-              NODE=NODE)
+              SPECIFIC_HOLE=SPECIFIC_HOLE,
+              SPECIFIC_FLOP=SPECIFIC_FLOP,
+              SPECIFIC_TURN=SPECIFIC_TURN,
+              SPECIFIC_RIVER=SPECIFIC_RIVER)
     
     # create the tree, title, and players
     g.tree = gambit.Game.new_tree()
