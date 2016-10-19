@@ -54,9 +54,13 @@ class Poker(gambit.Game):
                  NUMBER_OF_ROUNDS,
                  DEBUG,
                  SPECIFIC_HOLE,
+                 SPECIFIC_ACTIONS1,
                  SPECIFIC_FLOP,
+                 SPECIFIC_ACTIONS2,
                  SPECIFIC_TURN,
-                 SPECIFIC_RIVER):
+                 SPECIFIC_ACTIONS3,
+                 SPECIFIC_RIVER,
+                 SPECIFIC_ACTIONS4):
 
         # card values
         self.ACE_WRAPS       = ACE_WRAPS
@@ -108,25 +112,29 @@ class Poker(gambit.Game):
                              repeat               = 2, 
                              child_index          = 0, 
                              deal_string_template = "{} received ({},{}) and {} received ({},{}).",
-                             debug_child_index    = None), 
+                             debug_child_index    = None,
+                             debug_actions        = None), 
                        Round(name                 = "Flop",  
                              deal_size            = self.FLOP_SIZE, 
                              repeat               = 1, 
                              child_index          = 0, 
                              deal_string_template = "Flop cards were ({},{},{}).",
-                             debug_child_index    = None), 
+                             debug_child_index    = None,
+                             debug_actions        = None), 
                        Round(name                 = "Turn",  
                              deal_size            = self.TURN_SIZE,  
                              repeat               = 1, 
                              child_index          = 0, 
                              deal_string_template = "Turn card was ({}).",
-                             debug_child_index    = None), 
+                             debug_child_index    = None,
+                             debug_actions        = None), 
                        Round(name                 = "River", 
                              deal_size            = self.RIVER_SIZE, 
                              repeat               = 1, 
                              child_index          = 0, 
                              deal_string_template = "River card was ({}).",
-                             debug_child_index    = None)]
+                             debug_child_index    = None,
+                             debug_actions        = None)]
 
         # testing purposes
         self.DEBUG = DEBUG
@@ -279,13 +287,14 @@ class Poker(gambit.Game):
 
 class Round(object):
 
-    def __init__(self, name, deal_size, repeat, child_index, deal_string_template, debug_child_index):
+    def __init__(self, name, deal_size, repeat, child_index, deal_string_template, debug_child_index, debug_actions):
         self.name                 = name
         self.deal_size            = deal_size
         self.repeat               = repeat
         self.child_index          = child_index
         self.deal_string_template = deal_string_template
         self.debug_child_index    = debug_child_index
+        self.debug_actions        = debug_actions
 
     def __repr__(self):
         separator          = ""
@@ -293,7 +302,8 @@ class Round(object):
         deal_size_str      = "deal_size={deal_size}, ".format(deal_size = self.deal_size)
         repeat_str         = "repeat={repeat}, ".format(repeat = self.repeat)
         child_index_str    = "child_index={child_index}".format(child_index = self.child_index)
-        return_str_content = separator.join((name_str, deal_size_str, repeat_str, child_index_str))
+        debug_actions      = "debug_actions={debug_actions}".format(debug_actions = self.debug_actions)
+        return_str_content = separator.join((name_str, deal_size_str, repeat_str, child_index_str, debug_actions))
         return_str         = "({})".format(return_str_content)
 
         return return_str
@@ -326,27 +336,31 @@ def create_game(cfg):
             cfg = ConfigParser()
             cfg.read(CONFIGURATION_FILE)
 
-            GAME_SECTION     = "game"
-            POKER_SECTION    = "poker"
-            MANILA_SECTION   = "manila"
-            PERSONAL_SECTION = "personal"
-            TESTING_SECTION  = "testing"
-            PLAYER_1         = cfg.get(GAME_SECTION,"PLAYER_1")
-            PLAYER_2         = cfg.get(GAME_SECTION,"PLAYER_2")
-            MIXED_STRATEGIES = distutils.util.strtobool(cfg.get(GAME_SECTION,"MIXED_STRATEGIES"))
-            ANTE             = int(cfg.get(POKER_SECTION,"ANTE"))
-            BET              = int(cfg.get(POKER_SECTION,"BET"))
-            RAISE            = int(cfg.get(POKER_SECTION,"RAISE"))
-            ACE_WRAPS        = distutils.util.strtobool(cfg.get(MANILA_SECTION,"ACE_WRAPS"))
-            LOWEST_CARD      = int(cfg.get(MANILA_SECTION,"LOWEST_CARD"))
-            HIGHEST_CARD     = int(cfg.get(PERSONAL_SECTION,"HIGHEST_CARD"))
-            NUMBER_OF_SUITS  = int(cfg.get(PERSONAL_SECTION,"NUMBER_OF_SUITS"))
-            NUMBER_OF_ROUNDS = int(cfg.get(PERSONAL_SECTION,"NUMBER_OF_ROUNDS"))
-            DEBUG            = distutils.util.strtobool(cfg.get(TESTING_SECTION,"DEBUG"))
-            SPECIFIC_HOLE    = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_HOLE"))
-            SPECIFIC_FLOP    = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_FLOP"))
-            SPECIFIC_TURN    = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_TURN"))
-            SPECIFIC_RIVER   = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_RIVER"))
+            GAME_SECTION      = "game"
+            POKER_SECTION     = "poker"
+            MANILA_SECTION    = "manila"
+            PERSONAL_SECTION  = "personal"
+            TESTING_SECTION   = "testing"
+            PLAYER_1          = cfg.get(GAME_SECTION,"PLAYER_1")
+            PLAYER_2          = cfg.get(GAME_SECTION,"PLAYER_2")
+            MIXED_STRATEGIES  = distutils.util.strtobool(cfg.get(GAME_SECTION,"MIXED_STRATEGIES"))
+            ANTE              = int(cfg.get(POKER_SECTION,"ANTE"))
+            BET               = int(cfg.get(POKER_SECTION,"BET"))
+            RAISE             = int(cfg.get(POKER_SECTION,"RAISE"))
+            ACE_WRAPS         = distutils.util.strtobool(cfg.get(MANILA_SECTION,"ACE_WRAPS"))
+            LOWEST_CARD       = int(cfg.get(MANILA_SECTION,"LOWEST_CARD"))
+            HIGHEST_CARD      = int(cfg.get(PERSONAL_SECTION,"HIGHEST_CARD"))
+            NUMBER_OF_SUITS   = int(cfg.get(PERSONAL_SECTION,"NUMBER_OF_SUITS"))
+            NUMBER_OF_ROUNDS  = int(cfg.get(PERSONAL_SECTION,"NUMBER_OF_ROUNDS"))
+            DEBUG             = distutils.util.strtobool(cfg.get(TESTING_SECTION,"DEBUG"))
+            SPECIFIC_HOLE     = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_HOLE"))
+            SPECIFIC_ACTIONS1 = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_ACTIONS1"))
+            SPECIFIC_FLOP     = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_FLOP"))
+            SPECIFIC_ACTIONS2 = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_ACTIONS2"))
+            SPECIFIC_TURN     = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_TURN"))
+            SPECIFIC_ACTIONS3 = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_ACTIONS3"))
+            SPECIFIC_RIVER    = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_RIVER"))
+            SPECIFIC_ACTIONS4 = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_ACTIONS4"))
 
         
         # values added as arguments
@@ -420,9 +434,13 @@ def create_game(cfg):
               NUMBER_OF_ROUNDS=NUMBER_OF_ROUNDS,
               DEBUG=DEBUG,
               SPECIFIC_HOLE=SPECIFIC_HOLE,
+              SPECIFIC_ACTIONS1=SPECIFIC_ACTIONS1,
               SPECIFIC_FLOP=SPECIFIC_FLOP,
+              SPECIFIC_ACTIONS2=SPECIFIC_ACTIONS2,
               SPECIFIC_TURN=SPECIFIC_TURN,
-              SPECIFIC_RIVER=SPECIFIC_RIVER)
+              SPECIFIC_ACTIONS3=SPECIFIC_ACTIONS3,
+              SPECIFIC_RIVER=SPECIFIC_RIVER,
+              SPECIFIC_ACTIONS4=SPECIFIC_ACTIONS4)
     
     # create the tree, title, and players
     g.tree = gambit.Game.new_tree()
