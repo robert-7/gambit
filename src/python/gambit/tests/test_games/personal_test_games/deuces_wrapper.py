@@ -3,6 +3,7 @@ from deuces.lookup import LookupTable
 from deuces.card import Card
 from sys import stdout
 
+
 class Manila_Poker_Mapping(object):
 
     def __init__(self):
@@ -105,36 +106,60 @@ class Manila_Poker_Evaluator(Evaluator):
         return hand_rank
 
 
-def return_winner(g):
+def get_showdown_winner(g, bet_round):
 
     # create hands and board
-    hand1, hand2, board = create_hands_and_board(g)
+    hand1, hand2, board = create_hands_and_board(g, bet_round)
 
     # evaluate the hands
     mpe         = Manila_Poker_Evaluator()
     hand1_rank  = mpe.evaluate(g, hand1, board)
     hand2_rank  = mpe.evaluate(g, hand2, board)
 
+    # the winner to return
+    winner = None
+
     # return the winner
     if hand1_rank < hand2_rank:
-        return g.tree.players[0]
+        winner = g.tree.players[0]
     elif hand1_rank > hand2_rank:
-        return g.tree.players[1]
+        winner = g.tree.players[1]
     else:
-        return None
+        winner = None
 
-def create_hands_and_board(g):
+    return winner
+
+
+def create_hands_and_board(g, bet_round):
 
     # verify our cards are valid
     # most checks are done, so we just need to create a card
     # only if it's value is higher than or equal to the value of the
     # lowest card allowed
 
-    for card in g.cards_in_play:
+    # cards is g.cards_in_play but truncated to ignore any None values
+    cards = []
+    if bet_round == 4:
+        cards = g.cards_in_play
+    elif bet_round == 3:
+        cards = g.cards_in_play[:8]
+    elif bet_round == 2:
+        cards = g.cards_in_play[:7]
+
+    for card in cards:
+
+        # check for bad cards
+        if type(card) is not str or len(card) != 2:
+            error_msg = "You have a bad card: {}. Here is your deck: {}"
+            raise Exception(error_msg.format(card, cards))
 
         # get value of card as a string, or card_value = cv and card_value_string = cvs
         cvs = card[0]
+
+        # unless we're looking at a 10 or a face card
         if cvs != "T" and cvs != "J" and cvs != "Q" and cvs != "K" and cvs != "A":
+            
+            # get the value
             try:
                 cv = int(cvs)
             except Exception:
@@ -148,9 +173,9 @@ def create_hands_and_board(g):
                 raise ValueError(error_msg.format(g.LOWEST_CARD, cv))
 
     # create the hands and board
-    hand1 = create_cards(g.cards_in_play[0:2])
-    hand2 = create_cards(g.cards_in_play[2:4])
-    board = create_cards(g.cards_in_play[4:])
+    hand1 = create_cards(cards[0:2])
+    hand2 = create_cards(cards[2:4])
+    board = create_cards(cards[4:])
     
     # if g.DEBUG:
     #     stdout.write("hand1=")
@@ -162,6 +187,7 @@ def create_hands_and_board(g):
 
     return hand1, hand2, board
 
+
 def create_cards(cards):
 
     # we want to return a list of Card objects, given the string label
@@ -170,6 +196,7 @@ def create_cards(cards):
         ret_cards.append(Card.new(card))
 
     return ret_cards
+
 
 def adjust_rank_if_ace_wrap(card_rank, n, mpm):
 
