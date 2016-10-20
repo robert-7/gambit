@@ -1063,13 +1063,13 @@ def get_winner(g, bet_round, action, bets):
         if bets[0] < bets[1]:
 
             # return player 2
-            winner == g.tree.players[1]
+            winner = g.tree.players[1]
 
         # if player 2 folded...
         elif bets[0] > bets[1]:
 
             # return player 1
-            winner == g.tree.players[0]
+            winner = g.tree.players[0]
 
         else:
             error_msg  = "We are told that someone folded, but both players have the same bet. bets: {}"
