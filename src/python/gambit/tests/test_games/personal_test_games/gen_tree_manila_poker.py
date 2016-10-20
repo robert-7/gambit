@@ -551,6 +551,64 @@ def add_outcome(g, winner, multiple):
     return new_outcome
 
 
+def specific_node():
+    '''
+    We'd like to know if we're only creating the tree for a specific node.
+    '''
+
+    # for the time-being, we'll always return True
+    return True
+
+
+def prune_tree():
+    '''
+    We want to set the specific node to be the whole tree.
+    '''
+
+    # the mapping from actions to their respective indices in the tree
+    actions_to_indicies_map = {
+             (g.ids.BET,   g.ids.RAISE, g.ids.CALL) : [0, 0, 0],
+             (g.ids.BET,   g.ids.RAISE, g.ids.FOLD) : [0, 0, 1],
+             (g.ids.BET,   g.ids.CALL)              : [0, 1],
+             (g.ids.BET,   g.ids.FOLD)              : [0, 2],
+             (g.ids.CHECK, g.ids.RAISE, g.ids.CALL) : [1, 0, 0],
+             (g.ids.CHECK, g.ids.RAISE, g.ids.FOLD) : [1, 0, 1],
+             (g.ids.CHECK, g.ids.CHECK)             : [1, 1]
+    }
+
+    # the list containing all the indices
+    children_indices = []
+
+    # for every round...
+    for rnd in range(get_number_of_rounds(g)):
+
+        # append the chance child index
+        chance_index = g.rounds[rnd].debug_child_index
+        children_indices.append(chance_index)
+
+        # append the actions list converted to indices
+        actions = tuple(g.rounds[rnd].debug_actions)
+        action_indices = actions_to_indicies_map[actions]
+        children_indices += action_indices
+
+    # get the current node
+    node = g.tree.root
+
+    # we need to keep going down the tree until we reach the node in which 
+    # we're interested
+    for child_index in children_indices:
+        node = node.children[child_index]
+
+    # we need to keep replacing the node with its parent node until our node 
+    # is the root
+    while node.parent is not None:
+        node.delete_parent()
+
+    # set the node
+    # g.tree.root.move_tree(node)
+    node.move_tree(g.tree.root)
+
+
 def create_tree(args):
 
     print("Beginning to compute payoff tree".format(g.tree.title))
@@ -561,6 +619,12 @@ def create_tree(args):
                repeat=len(g.tree.players)-1, 
                bet_round=1,
                pot=0)
+
+    # if we're interested in the subtree at a specific node...
+    if specific_node():
+
+        # prune the tree to end up with only that node's subtree
+        prune_tree()
 
 
 def create_cst(g, root, repeat, bet_round, pot, action=""):
@@ -1401,7 +1465,7 @@ if __name__ == '__main__':
     s = compute_time_of(0, "Creating Saver", common.create_saver, ())
     g = compute_time_of(1, "Creating Game", create_game, (sys.argv,))
     try:
-       compute_time_of(2, "Creating Tree", create_tree, (g,))
+        compute_time_of(2, "Creating Tree", create_tree, (g,))
         # solutions = compute_time_of(3, "Solving Game", common.solve_game, (g,))
         # compute_time_of(4, "Printing Solutions", common.print_solutions, (solutions,s)) 
     except (KeyboardInterrupt):
