@@ -43,6 +43,7 @@ sudo python setup.py install
 
 # optional install to write games as xml format
 sudo pip install deuces
+sudo pip install pudb
 sudo pip install lxml
 
 # run tests
