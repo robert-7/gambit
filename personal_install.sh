@@ -41,9 +41,14 @@ sudo apt-get install python-dev
 python setup.py build
 sudo python setup.py install
 
-# optional install to write games as xml format
+# install deuces for solving poker hands
 sudo pip install deuces
+
+# install pudb for debugging and give permissions to the folder
 sudo pip install pudb
+sudo chmod 777 /home/vagrant/.config/pudb
+
+# optional install to write games as xml format
 sudo pip install lxml
 
 # run tests
