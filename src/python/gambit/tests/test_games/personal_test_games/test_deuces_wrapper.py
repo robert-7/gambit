@@ -20,7 +20,19 @@ class TestGen(object):
         g.ACE_WRAPS = ACE_WRAPS
         g.LOWEST_CARD = LOWEST_CARD
         g.NUMBER_OF_SUITS = NUMBER_OF_SUITS
-        assert return_winner(g) == player
+        
+        # we need to indicate what bet round it is:
+        if len(cards_in_play) == 9:
+            bet_round = 4
+        elif len(cards_in_play) == 8:
+            bet_round = 3
+        elif len(cards_in_play) == 7:
+            bet_round = 2
+        else:
+            error_msg = "Bad number of cards in play ({}). Should be one of: 7, 8, 9"
+            raise Exception(error_msg.format(len(cards_in_play)))
+        
+        assert get_showdown_winner(g, bet_round) == player
 
 
 if __name__ == "__main__":

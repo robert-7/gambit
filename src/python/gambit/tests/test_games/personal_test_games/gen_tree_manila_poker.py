@@ -53,14 +53,14 @@ class Poker(gambit.Game):
                  NUMBER_OF_SUITS,
                  NUMBER_OF_ROUNDS,
                  DEBUG,
-                 SPECIFIC_HOLE,
-                 SPECIFIC_ACTIONS1,
-                 SPECIFIC_FLOP,
-                 SPECIFIC_ACTIONS2,
-                 SPECIFIC_TURN,
-                 SPECIFIC_ACTIONS3,
-                 SPECIFIC_RIVER,
-                 SPECIFIC_ACTIONS4):
+                 SPECIFIC_HOLE=[],
+                 SPECIFIC_ACTIONS1=[],
+                 SPECIFIC_FLOP=[],
+                 SPECIFIC_ACTIONS2=[],
+                 SPECIFIC_TURN=[],
+                 SPECIFIC_ACTIONS3=[],
+                 SPECIFIC_RIVER=[],
+                 SPECIFIC_ACTIONS4=[]):
 
         # card values
         self.ACE_WRAPS       = ACE_WRAPS

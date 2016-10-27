@@ -10,17 +10,20 @@ class TestGen(object):
     def test_get_order(self, cards, MAX, order):
         "Test to ensure that get_order returns the right order"
         
-        assert gtmp.get_order(cards, MAX) == order
+        solution = gtmp.get_order(cards, MAX)
+        assert solution == order
 
     def test_get_order_hole(self, cards, MAX, order):
         "Test to ensure that get_order returns the right order"
         
-        assert gtmp.get_order_hole(cards, MAX) == order
+        solution = gtmp.get_order_hole(cards, MAX)
+        assert solution == order
 
     def test_get_order_hole_flop(self, cards, MAX, order):
         "Test to ensure that get_order_hole_flop returns the right order"
         
-        assert gtmp.get_order_hole_flop(cards, MAX) == order
+        solution = gtmp.get_order_hole_flop(cards, MAX)
+        assert solution == order
 
 if __name__ == "__main__":
     test = TestGen()
