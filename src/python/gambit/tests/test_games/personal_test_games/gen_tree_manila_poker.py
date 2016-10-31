@@ -595,12 +595,12 @@ def prune_tree():
              (g.ids.BET,   g.ids.RAISE)             : [0, 0],
              (g.ids.BET,   g.ids.CALL)              : [0, 1],
              (g.ids.BET,   g.ids.FOLD)              : [0, 2],
-             (g.ids.CHECK, g.ids.RAISE)             : [1, 0],
+             (g.ids.CHECK, g.ids.BET)               : [1, 0],
              (g.ids.CHECK, g.ids.CHECK)             : [1, 1],
              (g.ids.BET,   g.ids.RAISE, g.ids.CALL) : [0, 0, 0],
              (g.ids.BET,   g.ids.RAISE, g.ids.FOLD) : [0, 0, 1],
-             (g.ids.CHECK, g.ids.RAISE, g.ids.CALL) : [1, 0, 0],
-             (g.ids.CHECK, g.ids.RAISE, g.ids.FOLD) : [1, 0, 1]
+             (g.ids.CHECK, g.ids.BET,   g.ids.CALL) : [1, 0, 0],
+             (g.ids.CHECK, g.ids.BET,   g.ids.FOLD) : [1, 0, 1]
     }
 
     # the list containing all the indices
@@ -906,7 +906,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         node = root.children[1].children[0]
         player = p1
         action_labels = ["{}. {} calls", "{}. {} folds"]
-        node_label_suffix = "{}'s Response Node given {} Raises".format(player.label, node.parent.player.label)
+        node_label_suffix = "{}'s Response Node given {} Bets".format(player.label, node.parent.player.label)
         create_action_node(node, player, bet_round, action_labels, node_label_suffix, action)
 
     # at the end of player 2's checking branch, 
@@ -949,7 +949,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
 
     # at the end of player 1's calling branch, 
     #   we need to create a cst or terminal node
-    actions_so_far = g.ids.CHECK + g.ids.RAISE + g.ids.CALL
+    actions_so_far = g.ids.CHECK + g.ids.BET + g.ids.CALL
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
         node = root.children[1].children[0].children[0]
@@ -958,7 +958,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
 
     # at the end of player 1's folding branch, 
     #   we need to create a terminal node
-    actions_so_far = g.ids.CHECK + g.ids.RAISE + g.ids.FOLD
+    actions_so_far = g.ids.CHECK + g.ids.BET + g.ids.FOLD
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
         node = root.children[1].children[0].children[1]
