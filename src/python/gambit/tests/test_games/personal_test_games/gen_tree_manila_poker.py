@@ -151,6 +151,37 @@ class Poker(gambit.Game):
         # actions and players identifiers
         self.ids = Identifiers()
 
+        self.action_round_paths = [
+            (),
+            (self.ids.BET,),
+            (self.ids.CHECK,),
+            (self.ids.BET,   self.ids.RAISE),
+            (self.ids.BET,   self.ids.CALL),
+            (self.ids.BET,   self.ids.FOLD),
+            (self.ids.CHECK, self.ids.BET),
+            (self.ids.CHECK, self.ids.CHECK),
+            (self.ids.BET,   self.ids.RAISE, self.ids.CALL),
+            (self.ids.BET,   self.ids.RAISE, self.ids.FOLD),
+            (self.ids.CHECK, self.ids.BET,   self.ids.CALL),
+            (self.ids.CHECK, self.ids.BET,   self.ids.FOLD)
+        ]
+
+        # the mapping from actions to their respective indices in the tree
+        self.atim = {
+            self.action_round_paths[0]  : [],
+            self.action_round_paths[1]  : [0],
+            self.action_round_paths[2]  : [1],
+            self.action_round_paths[3]  : [0, 0],
+            self.action_round_paths[4]  : [0, 1],
+            self.action_round_paths[5]  : [0, 2],
+            self.action_round_paths[6]  : [1, 0],
+            self.action_round_paths[7]  : [1, 1],
+            self.action_round_paths[8]  : [0, 0, 0],
+            self.action_round_paths[9]  : [0, 0, 1],
+            self.action_round_paths[10] : [1, 0, 0],
+            self.action_round_paths[11] : [1, 0, 1]
+        }
+
 
     def set_debug_child_index(self, HOLE, FLOP, TURN, RIVER):
         '''
@@ -587,22 +618,6 @@ def prune_tree():
     We want to set the specific node to be the whole tree.
     '''
 
-    # the mapping from actions to their respective indices in the tree
-    actions_to_indicies_map = {
-             ()                                     : [],
-             (g.ids.BET,)                           : [0],
-             (g.ids.CHECK,)                         : [1],
-             (g.ids.BET,   g.ids.RAISE)             : [0, 0],
-             (g.ids.BET,   g.ids.CALL)              : [0, 1],
-             (g.ids.BET,   g.ids.FOLD)              : [0, 2],
-             (g.ids.CHECK, g.ids.BET)               : [1, 0],
-             (g.ids.CHECK, g.ids.CHECK)             : [1, 1],
-             (g.ids.BET,   g.ids.RAISE, g.ids.CALL) : [0, 0, 0],
-             (g.ids.BET,   g.ids.RAISE, g.ids.FOLD) : [0, 0, 1],
-             (g.ids.CHECK, g.ids.BET,   g.ids.CALL) : [1, 0, 0],
-             (g.ids.CHECK, g.ids.BET,   g.ids.FOLD) : [1, 0, 1]
-    }
-
     # the list containing all the indices
     children_indices = []
 
@@ -616,9 +631,9 @@ def prune_tree():
 
         # append the actions list converted to indices
         actions = tuple(g.rounds[rnd].debug_actions)
-        if actions not in actions_to_indicies_map:
+        if actions not in g.atim:
             raise Exception("actions ({}) is not in our mapping".format(actions))
-        action_indices = actions_to_indicies_map[actions]
+        action_indices = g.atim[actions]
         children_indices += action_indices
 
     # get the current node
@@ -838,7 +853,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
 
     # at the end of player 1's betting branch, 
     #   we need to create player 2's choice node that has raising, calling, and a folding branches
-    actions_so_far = g.ids.BET
+    actions_so_far = ''.join(g.action_round_paths[1])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
         node = root.children[0]
@@ -849,7 +864,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
 
     # at the end of player 1's checking branch, 
     #   we need to create player 2's choice node that has raising and checking branches
-    actions_so_far = g.ids.CHECK
+    actions_so_far = ''.join(g.action_round_paths[2])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
         node = root.children[1]
@@ -869,7 +884,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
 
     # at the end of player 2's raising branch, 
     #   we need to create player 1's choice node that has calling and folding branches
-    actions_so_far = g.ids.BET + g.ids.RAISE
+    actions_so_far = ''.join(g.action_round_paths[3])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
         node = root.children[0].children[0]
@@ -880,7 +895,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
 
     # at the end of player 2's calling branch, 
     #   we need to create the chance branch
-    actions_so_far = g.ids.BET + g.ids.CALL
+    actions_so_far = ''.join(g.action_round_paths[4])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
         node = root.children[0].children[1]
@@ -889,7 +904,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
 
     # at the end of player 2's folding branch, 
     #   we need to create the terminal outcome branch
-    actions_so_far = g.ids.BET + g.ids.FOLD
+    actions_so_far = ''.join(g.action_round_paths[5])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
         node = root.children[0].children[2]
@@ -900,7 +915,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
 
     # at the end of player 2's betting branch, 
     #   we need to create player 1's choice node that has calling and folding branches
-    actions_so_far = g.ids.CHECK + g.ids.BET
+    actions_so_far = ''.join(g.action_round_paths[6])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
         node = root.children[1].children[0]
@@ -911,7 +926,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
 
     # at the end of player 2's checking branch, 
     #   we need to create a cst or terminal node
-    actions_so_far = g.ids.CHECK + g.ids.CHECK
+    actions_so_far = ''.join(g.action_round_paths[7])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
         node = root.children[1].children[1]
@@ -929,7 +944,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
 
     # at the end of player 1's calling branch, 
     #   we need to create a cst or terminal node
-    actions_so_far = g.ids.BET + g.ids.RAISE + g.ids.CALL
+    actions_so_far = ''.join(g.action_round_paths[8])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
         node = root.children[0].children[0].children[0]
@@ -938,7 +953,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
 
     # at the end of player 1's folding branch, 
     #   we need to create a terminal node
-    actions_so_far = g.ids.BET + g.ids.RAISE + g.ids.FOLD
+    actions_so_far = ''.join(g.action_round_paths[9])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
         node = root.children[0].children[0].children[1]
@@ -949,7 +964,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
 
     # at the end of player 1's calling branch, 
     #   we need to create a cst or terminal node
-    actions_so_far = g.ids.CHECK + g.ids.BET + g.ids.CALL
+    actions_so_far = ''.join(g.action_round_paths[10])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
         node = root.children[1].children[0].children[0]
@@ -958,7 +973,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
 
     # at the end of player 1's folding branch, 
     #   we need to create a terminal node
-    actions_so_far = g.ids.CHECK + g.ids.BET + g.ids.FOLD
+    actions_so_far = ''.join(g.action_round_paths[11])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
         node = root.children[1].children[0].children[1]
