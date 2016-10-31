@@ -151,6 +151,7 @@ class Poker(gambit.Game):
         # actions and players identifiers
         self.ids = Identifiers()
 
+
     def set_debug_child_index(self, HOLE, FLOP, TURN, RIVER):
         '''
         We'd like to represent the node as [int, int, int, int] where 
@@ -285,6 +286,74 @@ class Poker(gambit.Game):
         return return_str
 
 
+    def get_hole_cards(self):
+        hole_cards = [self.cards_in_play[0], self.cards_in_play[1], self.cards_in_play[2], self.cards_in_play[3]]
+        return hole_cards
+
+
+    def get_flop_cards(self):
+        flop_cards = [self.cards_in_play[4], self.cards_in_play[5], self.cards_in_play[6]]
+        return flop_cards
+
+
+    def get_turn_card(self):
+        turn_card = [self.cards_in_play[7]]
+        return turn_card
+
+
+    def get_river_card(self):
+        river_card = [self.cards_in_play[8]]
+        return river_card
+
+
+    def get_outcome(self, winner, amount):
+        '''
+        The amount won is always the loser's contribution to the pot.
+        If player 1 is the winner, the index of the outcome is: 
+          index = amount - 1
+        If player 2 is the winner, the index of the outcome is:
+          index = amount
+        '''
+
+        # get the index
+        index = 0
+
+        # if there is no winner
+        if winner is None:
+            index = 0
+        
+        # there is a winner...
+        else: 
+
+            # if we gave a bad winner
+            if winner not in self.tree.players:
+                error_msg = "Our winner is not a player, nor is it None. winner: {}"
+                raise Exception(error_msg.format(winner))
+
+            # if amount is not an int...
+            if type(amount) is not int:
+                error_msg = "amount is not of type int. type(amount): {}"
+                raise Exception(error_msg.format(type(amount)))
+
+            # if amount is not a valid int...
+            if amount < 0 or amount > 16: 
+                error_msg = "amount is not within range of [0, 16]. amount: {}"
+                raise Exception(error_msg.format(amount))
+
+            # if player 1 won...
+            if winner == self.tree.players[0]:
+                index = amount - 1
+
+            # if player 2 won...
+            elif winner == self.tree.players[1]:
+                index = amount
+        
+        # get the outcome
+        outcome = self.tree.outcomes[index]
+
+        return outcome
+
+
 class Round(object):
 
     def __init__(self, name, deal_size, repeat, child_index, deal_string_template, debug_child_index, debug_actions):
@@ -310,6 +379,36 @@ class Round(object):
 
 
 def create_game(cfg):
+
+    def add_outcome_player_1_wins(g, amount):
+        '''
+        A child function that calls add_outcome given player 1 is the winner.
+        '''
+        
+        add_outcome(g, g.tree.players[0],  amount)
+
+
+    def add_outcome_player_2_wins(g, amount):
+        '''
+        A child function that calls add_outcome given player 2 is the winner.
+        '''
+
+        add_outcome(g, g.tree.players[1], -amount)
+
+
+    def add_outcome(g, winner, multiple):
+        '''
+        Takes the default outcome and multiplies it based on the bet value.
+        '''
+
+        outcome_string_template = "{} wins {}"
+        outcome_string = outcome_string_template.format(winner.label, multiple)
+        new_outcome = g.tree.outcomes.add(outcome_string)
+        new_outcome[0] =  multiple
+        new_outcome[1] = -multiple
+        return new_outcome
+
+
 
     # try to get user input
     USAGE_OUTPUT = """
@@ -472,83 +571,6 @@ def create_game(cfg):
 
     # we're done setting up the game
     return g
-
-
-def get_outcome(g, winner, amount):
-    '''
-    The amount won is always the loser's contribution to the pot.
-    If player 1 is the winner, the index of the outcome is: 
-      index = amount - 1
-    If player 2 is the winner, the index of the outcome is:
-      index = amount
-    '''
-
-    # get the index
-    index = 0
-
-    # if there is no winner
-    if winner is None:
-        index = 0
-    
-    # there is a winner...
-    else: 
-
-        # if we gave a bad winner
-        if winner not in g.tree.players:
-            error_msg = "Our winner is not a player, nor is it None. winner: {}"
-            raise Exception(error_msg.format(winner))
-
-        # if amount is not an int...
-        if type(amount) is not int:
-            error_msg = "amount is not of type int. type(amount): {}"
-            raise Exception(error_msg.format(type(amount)))
-
-        # if amount is not a valid int...
-        if amount < 0 or amount > 16: 
-            error_msg = "amount is not within range of [0, 16]. amount: {}"
-            raise Exception(error_msg.format(amount))
-
-        # if player 1 won...
-        if winner == g.tree.players[0]:
-            index = amount - 1
-
-        # if player 2 won...
-        elif winner == g.tree.players[1]:
-            index = amount
-    
-    # get the outcome
-    outcome = g.tree.outcomes[index]
-
-    return outcome
-
-
-def add_outcome_player_1_wins(g, amount):
-    '''
-    A child function that calls add_outcome given player 1 is the winner.
-    '''
-    
-    add_outcome(g, g.tree.players[0],  amount)
-
-
-def add_outcome_player_2_wins(g, amount):
-    '''
-    A child function that calls add_outcome given player 2 is the winner.
-    '''
-
-    add_outcome(g, g.tree.players[1], -amount)
-
-
-def add_outcome(g, winner, multiple):
-    '''
-    Takes the default outcome and multiplies it based on the bet value.
-    '''
-
-    outcome_string_template = "{} wins {}"
-    outcome_string = outcome_string_template.format(winner.label, multiple)
-    new_outcome = g.tree.outcomes.add(outcome_string)
-    new_outcome[0] =  multiple
-    new_outcome[1] = -multiple
-    return new_outcome
 
 
 def specific_node():
@@ -818,7 +840,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     #   we need to create player 2's choice node that has raising, calling, and a folding branches
     actions_so_far = g.ids.BET
     if actions_so_far.startswith(specific_actions_so_far):
-        action = g.ids.BET
+        action = actions_so_far[-1]
         node = root.children[0]
         player = p2
         action_labels = ["{}. {} raises", "{}. {} calls", "{}. {} folds"]
@@ -829,10 +851,10 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     #   we need to create player 2's choice node that has raising and checking branches
     actions_so_far = g.ids.CHECK
     if actions_so_far.startswith(specific_actions_so_far):
-        action = g.ids.CHECK
+        action = actions_so_far[-1]
         node = root.children[1]
         player = p2
-        action_labels = ["{}. {} raises", "{}. {} checks"]
+        action_labels = ["{}. {} bets", "{}. {} checks"]
         node_label_suffix = "{}'s Response Node given {} Checks".format(player.label, node.parent.player.label)
         create_action_node(node, player, bet_round, action_labels, node_label_suffix, action)
 
@@ -849,7 +871,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     #   we need to create player 1's choice node that has calling and folding branches
     actions_so_far = g.ids.BET + g.ids.RAISE
     if actions_so_far.startswith(specific_actions_so_far):
-        action = g.ids.RAISE
+        action = actions_so_far[-1]
         node = root.children[0].children[0]
         player = p1
         action_labels = ["{}. {} calls", "{}. {} folds"]
@@ -860,7 +882,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     #   we need to create the chance branch
     actions_so_far = g.ids.BET + g.ids.CALL
     if actions_so_far.startswith(specific_actions_so_far):
-        action = g.ids.CALL
+        action = actions_so_far[-1]
         node = root.children[0].children[1]
         bets = (pot/2 + 1*g.BET, pot/2 + 1*g.BET) 
         create_chance_or_terminal_node(node, bet_round, stop, action, bets)    
@@ -869,18 +891,18 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     #   we need to create the terminal outcome branch
     actions_so_far = g.ids.BET + g.ids.FOLD
     if actions_so_far.startswith(specific_actions_so_far):
-        action = g.ids.FOLD
+        action = actions_so_far[-1]
         node = root.children[0].children[2]
         player = p1
         node_label_suffix = "{} folds".format(player.label)
         bets = (pot/2 + 1*g.BET, pot/2 + 0*g.BET) 
         create_terminal_node(node, bet_round, node_label_suffix, action, bets)  
 
-    # at the end of player 2's raising branch, 
+    # at the end of player 2's betting branch, 
     #   we need to create player 1's choice node that has calling and folding branches
-    actions_so_far = g.ids.CHECK + g.ids.RAISE
+    actions_so_far = g.ids.CHECK + g.ids.BET
     if actions_so_far.startswith(specific_actions_so_far):
-        action = g.ids.RAISE
+        action = actions_so_far[-1]
         node = root.children[1].children[0]
         player = p1
         action_labels = ["{}. {} calls", "{}. {} folds"]
@@ -891,10 +913,10 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     #   we need to create a cst or terminal node
     actions_so_far = g.ids.CHECK + g.ids.CHECK
     if actions_so_far.startswith(specific_actions_so_far):
-        action = g.ids.CHECK
+        action = actions_so_far[-1]
         node = root.children[1].children[1]
         bets = (pot/2 + 0*g.BET, pot/2 + 0*g.BET) 
-        create_chance_or_terminal_node(node, bet_round, stop, action, bets)  
+        create_chance_or_terminal_node(node, bet_round, stop, action, bets)
 
     ###############################################
     ########## CREATE ROW 4 AND BRANCHES ##########
@@ -909,7 +931,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     #   we need to create a cst or terminal node
     actions_so_far = g.ids.BET + g.ids.RAISE + g.ids.CALL
     if actions_so_far.startswith(specific_actions_so_far):
-        action = g.ids.CALL
+        action = actions_so_far[-1]
         node = root.children[0].children[0].children[0]
         bets = (pot/2 + 2*g.BET, pot/2 + 2*g.BET) 
         create_chance_or_terminal_node(node, bet_round, stop, action, bets) 
@@ -918,7 +940,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     #   we need to create a terminal node
     actions_so_far = g.ids.BET + g.ids.RAISE + g.ids.FOLD
     if actions_so_far.startswith(specific_actions_so_far):
-        action = g.ids.FOLD
+        action = actions_so_far[-1]
         node = root.children[0].children[0].children[1]
         player = p1
         node_label_suffix = "{} folds".format(player.label)
@@ -929,7 +951,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     #   we need to create a cst or terminal node
     actions_so_far = g.ids.CHECK + g.ids.RAISE + g.ids.CALL
     if actions_so_far.startswith(specific_actions_so_far):
-        action = g.ids.CALL
+        action = actions_so_far[-1]
         node = root.children[1].children[0].children[0]
         bets = (pot/2 + 1*g.BET, pot/2 + 1*g.BET) 
         create_chance_or_terminal_node(node, bet_round, stop, action, bets) 
@@ -938,7 +960,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     #   we need to create a terminal node
     actions_so_far = g.ids.CHECK + g.ids.RAISE + g.ids.FOLD
     if actions_so_far.startswith(specific_actions_so_far):
-        action = g.ids.FOLD
+        action = actions_so_far[-1]
         node = root.children[1].children[0].children[1]
         player = p1
         node_label_suffix = "{} folds".format(player.label)
@@ -1029,7 +1051,7 @@ def set_node_label(node, bet_round, NODE_DESCRIPTION, is_terminal, action, bets=
             amount = get_amount(g, winner, bets)
 
             # third, we get the outcome
-            outcome = get_outcome(g, winner, amount)
+            outcome = g.get_outcome(winner, amount)
 
             # finally, we set the outcome
             node.outcome = outcome
@@ -1100,26 +1122,6 @@ def get_amount(g, winner, bets):
     return amount
 
 
-def get_hole_cards(g):
-    hole_cards = [g.cards_in_play[0], g.cards_in_play[1], g.cards_in_play[2], g.cards_in_play[3]]
-    return hole_cards
-
-
-def get_flop_cards(g):
-    flop_cards = [g.cards_in_play[4], g.cards_in_play[5], g.cards_in_play[6]]
-    return flop_cards
-
-
-def get_turn_card(g):
-    turn_card = [g.cards_in_play[7]]
-    return turn_card
-
-
-def get_river_card(g):
-    river_card = [g.cards_in_play[8]]
-    return river_card
-
-
 def get_deal_string(g, bet_round, child_index):
 
     # we need the chance round for which the cards are being dealt, 
@@ -1127,7 +1129,7 @@ def get_deal_string(g, bet_round, child_index):
     current_round = get_round(g, bet_round)
     template = current_round.deal_string_template
     if bet_round == 1:
-        hole_cards = get_hole_cards(g)
+        hole_cards = g.get_hole_cards()
         return_str = template.format(g.tree.players[0].label, 
                                      hole_cards[0],
                                      hole_cards[1],
@@ -1135,15 +1137,15 @@ def get_deal_string(g, bet_round, child_index):
                                      hole_cards[2],
                                      hole_cards[3])
     elif bet_round == 2:
-        flop_cards = get_flop_cards(g)
+        flop_cards = g.get_flop_cards()
         return_str = template.format(flop_cards[0],
                                      flop_cards[1],
                                      flop_cards[2])
     elif bet_round == 3:
-        turn_card = get_hole_cards(g)
+        turn_card = g.get_hole_cards()
         return_str = template.format(turn_card)
     elif bet_round == 4:
-        river_card = get_hole_cards(g)
+        river_card = g.get_hole_cards()
         return_str = template.format(river_card)
     else:
         raise Exception("Bad bet_round was given: {}".format(bet_round))
