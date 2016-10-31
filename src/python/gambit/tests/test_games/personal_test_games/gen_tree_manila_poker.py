@@ -151,6 +151,7 @@ class Poker(gambit.Game):
         # actions and players identifiers
         self.ids = Identifiers()
 
+        # get a list of all possible paths
         self.action_round_paths = [
             (),
             (self.ids.BET,),
@@ -383,6 +384,11 @@ class Poker(gambit.Game):
         outcome = self.tree.outcomes[index]
 
         return outcome
+
+
+    def get_number_of_rounds(g):
+        number_of_rounds = g.NUMBER_OF_ROUNDS
+        return number_of_rounds
 
 
 class Round(object):
@@ -622,7 +628,7 @@ def prune_tree():
     children_indices = []
 
     # for every round...
-    for rnd in range(get_number_of_rounds(g)):
+    for rnd in range(g.get_number_of_rounds()):
 
         # append the chance child index
         chance_index = g.rounds[rnd].debug_child_index
@@ -1203,18 +1209,13 @@ def is_last_round(g, bet_round):
     Returns True if this is the last round.
     '''
 
-    number_of_rounds = get_number_of_rounds(g)
+    number_of_rounds = g.get_number_of_rounds()
     last_round = False
     if bet_round == number_of_rounds:
         last_round = True
     elif bet_round > number_of_rounds:
         raise Exception("bet_round ({}) exceeded the maximum number of rounds ({})".format(bet_round, number_of_rounds))
     return last_round
-
-
-def get_number_of_rounds(g):
-    number_of_rounds = g.NUMBER_OF_ROUNDS
-    return number_of_rounds
 
 
 def get_round_index(bet_round):
@@ -1271,7 +1272,7 @@ def get_child_index(g, bet_round):
 def get_children_indices(g):
     
     return_list = []
-    for i in range(get_number_of_rounds(g)):
+    for i in range(g.get_number_of_rounds()):
         r = g.rounds[i]
         return_list.append(r.child_index)
     return return_list
