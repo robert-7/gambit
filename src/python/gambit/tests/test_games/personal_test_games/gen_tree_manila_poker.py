@@ -368,8 +368,8 @@ class Poker(gambit.Game):
                 raise Exception(error_msg.format(type(amount)))
 
             # if amount is not a valid int...
-            if amount < 0 or amount > 16: 
-                error_msg = "amount is not within range of [0, 16]. amount: {}"
+            if amount < 0 or amount > 24: 
+                error_msg = "amount is not within range of [0, 24]. amount: {}"
                 raise Exception(error_msg.format(amount))
 
             # if player 1 won...
@@ -444,7 +444,6 @@ def create_game(cfg):
         new_outcome[0] =  multiple
         new_outcome[1] = -multiple
         return new_outcome
-
 
 
     # try to get user input
@@ -605,6 +604,15 @@ def create_game(cfg):
     add_outcome_player_2_wins(g, 14) # g.tree.outcomes[14] = (-14, 14)
     add_outcome_player_1_wins(g, 16) # g.tree.outcomes[15] = ( 16,-16)
     add_outcome_player_2_wins(g, 16) # g.tree.outcomes[16] = (-16, 16)
+    add_outcome_player_1_wins(g, 18) # g.tree.outcomes[17] = ( 18,-18)
+    add_outcome_player_2_wins(g, 18) # g.tree.outcomes[18] = (-18, 18)
+    add_outcome_player_1_wins(g, 20) # g.tree.outcomes[19] = ( 20,-20)
+    add_outcome_player_2_wins(g, 20) # g.tree.outcomes[20] = (-20, 20)
+    add_outcome_player_1_wins(g, 22) # g.tree.outcomes[21] = ( 22,-22)
+    add_outcome_player_2_wins(g, 22) # g.tree.outcomes[22] = (-22, 22)
+    add_outcome_player_1_wins(g, 24) # g.tree.outcomes[23] = ( 24,-24)
+    add_outcome_player_2_wins(g, 24) # g.tree.outcomes[24] = (-24, 24)
+
 
     # we're done setting up the game
     return g
@@ -905,7 +913,8 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
         node = root.children[0].children[1]
-        bets = (pot/2 + 1*g.BET, pot/2 + 1*g.BET) 
+        # bets = get_bets(pot/2 + 1*g.BET, pot/2 + 1*g.BET) 
+        bets = get_bets(g, pot, actions_so_far, bet_round)
         create_chance_or_terminal_node(node, bet_round, stop, action, bets)    
 
     # at the end of player 2's folding branch, 
@@ -916,7 +925,8 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         node = root.children[0].children[2]
         player = p1
         node_label_suffix = "{} folds".format(player.label)
-        bets = (pot/2 + 1*g.BET, pot/2 + 0*g.BET) 
+        # bets = get_bets(pot/2 + 1*g.BET, pot/2 + 0*g.BET) 
+        bets = get_bets(g, pot, actions_so_far, bet_round)
         create_terminal_node(node, bet_round, node_label_suffix, action, bets)  
 
     # at the end of player 2's betting branch, 
@@ -936,7 +946,8 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
         node = root.children[1].children[1]
-        bets = (pot/2 + 0*g.BET, pot/2 + 0*g.BET) 
+        # bets = get_bets(pot/2 + 0*g.BET, pot/2 + 0*g.BET) 
+        bets = get_bets(g, pot, actions_so_far, bet_round)
         create_chance_or_terminal_node(node, bet_round, stop, action, bets)
 
     ###############################################
@@ -954,7 +965,8 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
         node = root.children[0].children[0].children[0]
-        bets = (pot/2 + 2*g.BET, pot/2 + 2*g.BET) 
+        # bets = get_bets(pot/2 + 2*g.BET, pot/2 + 2*g.BET) 
+        bets = get_bets(g, pot, actions_so_far, bet_round)
         create_chance_or_terminal_node(node, bet_round, stop, action, bets) 
 
     # at the end of player 1's folding branch, 
@@ -965,7 +977,8 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         node = root.children[0].children[0].children[1]
         player = p1
         node_label_suffix = "{} folds".format(player.label)
-        bets = (pot/2 + 1*g.BET, pot/2 + 2*g.BET) 
+        # bets = get_bets(pot/2 + 1*g.BET, pot/2 + 2*g.BET) 
+        bets = get_bets(g, pot, actions_so_far, bet_round)
         create_terminal_node(node, bet_round, node_label_suffix, action, bets)  
 
     # at the end of player 1's calling branch, 
@@ -974,7 +987,8 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
         node = root.children[1].children[0].children[0]
-        bets = (pot/2 + 1*g.BET, pot/2 + 1*g.BET) 
+        # bets = get_bets(pot/2 + 1*g.BET, pot/2 + 1*g.BET) 
+        bets = get_bets(g, pot, actions_so_far, bet_round)
         create_chance_or_terminal_node(node, bet_round, stop, action, bets) 
 
     # at the end of player 1's folding branch, 
@@ -985,8 +999,44 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         node = root.children[1].children[0].children[1]
         player = p1
         node_label_suffix = "{} folds".format(player.label)
-        bets = (pot/2 + 0*g.BET, pot/2 + 1*g.BET) 
+        # bets = get_bets(pot/2 + 0*g.BET, pot/2 + 1*g.BET) 
+        bets = get_bets(g, pot, actions_so_far, bet_round)
         create_terminal_node(node, bet_round, node_label_suffix, action, bets)   
+
+
+def get_bets(g, pot, actions_so_far, bet_round):
+    '''
+    We want to return the values player 1 and player 2 have put into the pot by now.
+    '''
+
+    # the tuple we'd like to return
+    bets = [pot/2, pot/2]
+
+    # if we're in the turn or river round, we need to double the bet value
+    b = g.BET
+    r = g.RAISE
+    if is_turn_round(g, bet_round) or is_river_round(g, bet_round):
+        b *= 2
+        r *= 2
+
+    for action_index in range(len(actions_so_far)):
+        action = actions_so_far[action_index]
+        if action == g.ids.BET:
+            bets[action_index % 2] += b
+        elif action == g.ids.CALL:
+            bets[action_index % 2] = bets[(action_index+1) % 2]
+        elif action == g.ids.CHECK:
+            pass
+        elif action == g.ids.FOLD:
+            pass
+        elif action == g.ids.RAISE:
+            bets[action_index % 2] = bets[(action_index+1) % 2]
+            bets[action_index % 2] += b
+        else:
+            error_msg = "I don't know what action this is ({}) given these actions ({})"
+            raise Exception(error_msg.format(action, actions_so_far))
+
+    return tuple(bets)
 
 
 def create_terminal_node(node, bet_round, node_label_suffix, action, bets):
@@ -1204,18 +1254,40 @@ def get_minimum_deck_size(n):
         raise Exception("Bad value for NUMBER_OF_ROUNDS. Should be from 1 to 4. Given ({})".format(n))
 
 
+def is_round(g, n, bet_round):
+    number_of_rounds = g.get_number_of_rounds()
+    last_round = False
+    if type(bet_round) is not int:
+        raise Exception("bet_round is type ({}) but should be type int".format(type(bet_round)))
+    elif bet_round == n:
+        last_round = True
+    elif bet_round != 1 and bet_round != 2 and bet_round != 3 and bet_round != 4:
+        raise Exception("bad bet_round value ({}) given".format(bet_round))
+    return last_round
+
+
 def is_last_round(g, bet_round):
     '''
     Returns True if this is the last round.
     '''
 
-    number_of_rounds = g.get_number_of_rounds()
-    last_round = False
-    if bet_round == number_of_rounds:
-        last_round = True
-    elif bet_round > number_of_rounds:
-        raise Exception("bet_round ({}) exceeded the maximum number of rounds ({})".format(bet_round, number_of_rounds))
-    return last_round
+    return is_round(g, g.get_number_of_rounds(), bet_round)
+
+
+def is_turn_round(g, bet_round):
+    '''
+    Returns True if this is the flop round.
+    '''
+
+    return is_round(g, 3, bet_round)
+
+
+def is_river_round(g, bet_round):
+    '''
+    Returns True if this is the flop round.
+    '''
+
+    return is_round(g, 4, bet_round)
 
 
 def get_round_index(bet_round):

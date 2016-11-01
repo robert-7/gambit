@@ -9,10 +9,66 @@ from sys import argv
 class TestGen(unittest.TestCase):
 
     def setUp(self):
-        pass
+        # test = TestGen()
+        # testing whether we're returning the correct winner
+        self.g = gtmp.Poker(MIXED_STRATEGIES=True,
+                            ANTE=1, 
+                            BET=2, 
+                            RAISE=2,
+                            ACE_WRAPS=True,
+                            LOWEST_CARD=2, 
+                            HIGHEST_CARD=14, 
+                            NUMBER_OF_SUITS=4,
+                            NUMBER_OF_ROUNDS=4,
+                            DEBUG=True)
+        self.g.tree = gambit.Game.new_tree()
+        self.g.tree.players.add("Rose")
+        self.g.tree.players.add("Colin")
     
     def tearDown(self):
         pass
+
+
+    def test_get_bets(self):
+
+        # self.action_round_paths = [
+        #     (),
+        #     (self.ids.BET,),
+        #     (self.ids.CHECK,),
+        #     (self.ids.BET,   self.ids.RAISE),
+        #     (self.ids.BET,   self.ids.CALL),
+        #     (self.ids.BET,   self.ids.FOLD),
+        #     (self.ids.CHECK, self.ids.BET),
+        #     (self.ids.CHECK, self.ids.CHECK),
+        #     (self.ids.BET,   self.ids.RAISE, self.ids.CALL),
+        #     (self.ids.BET,   self.ids.RAISE, self.ids.FOLD),
+        #     (self.ids.CHECK, self.ids.BET,   self.ids.CALL),
+        #     (self.ids.CHECK, self.ids.BET,   self.ids.FOLD)
+        # ]
+
+        # get each action round path as a string
+        ARPAS = []
+        for arp in self.g.action_round_paths:
+            ARPAS.append(''.join(arp))
+
+        pot = 8
+        bet_round = 2
+        b = self.g.BET
+        r = self.g.RAISE
+        self._test_get_bets(pot, ARPAS[4],  bet_round, (pot/2 + 1*b, pot/2 + 1*b)) # BK
+        self._test_get_bets(pot, ARPAS[5],  bet_round, (pot/2 + 1*b, pot/2 + 0*b)) # BF
+        self._test_get_bets(pot, ARPAS[7],  bet_round, (pot/2 + 0*b, pot/2 + 0*b)) # CC
+        self._test_get_bets(pot, ARPAS[8],  bet_round, (pot/2 + 2*b, pot/2 + 2*b)) # BRK
+        self._test_get_bets(pot, ARPAS[9],  bet_round, (pot/2 + 1*b, pot/2 + 2*b)) # BRF
+        self._test_get_bets(pot, ARPAS[10], bet_round, (pot/2 + 1*b, pot/2 + 1*b)) # CBK
+        self._test_get_bets(pot, ARPAS[11], bet_round, (pot/2 + 0*b, pot/2 + 1*b)) # CBF
+        
+
+    def _test_get_bets(self, pot, arpas, bet_round, correct_answer):
+        solution = gtmp.get_bets(self.g, pot, arpas, bet_round)
+        print(arpas + " " + str(solution))
+        assert solution == correct_answer
+
 
     def test_get_order(self):
         "Test to ensure that get_order returns the right order"
