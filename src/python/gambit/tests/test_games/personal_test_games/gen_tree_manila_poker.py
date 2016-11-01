@@ -460,63 +460,47 @@ def create_game(cfg):
                                    NUMBER_OF_SUITS (int: 1->4)
                                    NUMBER_OF_ROUNDS (int: 2->4)
                                    DEBUG (bool)
-                                   NODE (list or None)]"""
+                                   SPECIFIC_HOLE (list or None)
+                                   SPECIFIC_ACTIONS1 (list or None)
+                                   SPECIFIC_FLOP (list or None)
+                                   SPECIFIC_ACTIONS2 (list or None)
+                                   SPECIFIC_TURN (list or None)
+                                   SPECIFIC_ACTIONS3 (list or None)
+                                   SPECIFIC_RIVER (list or None)
+                                   SPECIFIC_ACTIONS4 (list or None)]"""
 
     try:
-        
-        if len(sys.argv)    == 1:
 
-            # create the configuration parser
-            CONFIGURATION_FILE = "config.ini"
-            cfg = ConfigParser()
-            cfg.read(CONFIGURATION_FILE)
+        # create the configuration parser
+        CONFIGURATION_FILE = "config.ini"
+        cfg = ConfigParser()
+        cfg.read(CONFIGURATION_FILE)
 
-            GAME_SECTION      = "game"
-            POKER_SECTION     = "poker"
-            MANILA_SECTION    = "manila"
-            PERSONAL_SECTION  = "personal"
-            TESTING_SECTION   = "testing"
-            PLAYER_1          = cfg.get(GAME_SECTION,"PLAYER_1")
-            PLAYER_2          = cfg.get(GAME_SECTION,"PLAYER_2")
-            MIXED_STRATEGIES  = distutils.util.strtobool(cfg.get(GAME_SECTION,"MIXED_STRATEGIES"))
-            ANTE              = int(cfg.get(POKER_SECTION,"ANTE"))
-            BET               = int(cfg.get(POKER_SECTION,"BET"))
-            RAISE             = int(cfg.get(POKER_SECTION,"RAISE"))
-            ACE_WRAPS         = distutils.util.strtobool(cfg.get(MANILA_SECTION,"ACE_WRAPS"))
-            LOWEST_CARD       = int(cfg.get(MANILA_SECTION,"LOWEST_CARD"))
-            HIGHEST_CARD      = int(cfg.get(PERSONAL_SECTION,"HIGHEST_CARD"))
-            NUMBER_OF_SUITS   = int(cfg.get(PERSONAL_SECTION,"NUMBER_OF_SUITS"))
-            NUMBER_OF_ROUNDS  = int(cfg.get(PERSONAL_SECTION,"NUMBER_OF_ROUNDS"))
-            DEBUG             = distutils.util.strtobool(cfg.get(TESTING_SECTION,"DEBUG"))
-            SPECIFIC_HOLE     = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_HOLE"))
-            SPECIFIC_ACTIONS1 = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_ACTIONS1"))
-            SPECIFIC_FLOP     = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_FLOP"))
-            SPECIFIC_ACTIONS2 = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_ACTIONS2"))
-            SPECIFIC_TURN     = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_TURN"))
-            SPECIFIC_ACTIONS3 = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_ACTIONS3"))
-            SPECIFIC_RIVER    = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_RIVER"))
-            SPECIFIC_ACTIONS4 = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_ACTIONS4"))
-
-        
-        # values added as arguments
-        elif len(sys.argv)  == 14:
-            PLAYER_1         = sys.argv[1]
-            PLAYER_2         = sys.argv[2]
-            MIXED_STRATEGIES = distutils.util.strtobool(sys.argv[3])
-            ANTE             = int(sys.argv[4])
-            BET              = int(sys.argv[5])
-            RAISE            = int(sys.argv[6])
-            ACE_WRAPS        = distutils.util.strtobool(sys.argv[7])
-            LOWEST_CARD      = int(sys.argv[8])
-            HIGHEST_CARD     = int(sys.argv[9])
-            NUMBER_OF_SUITS  = int(sys.argv[10])
-            NUMBER_OF_ROUNDS = int(sys.argv[11])
-            DEBUG            = distutils.util.strtobool(sys.argv[12])
-            NODE             = literal_eval(sys.argv[13])
-        
-        # improper amount of values added
-        else:    
-            raise ValueError
+        GAME_SECTION      = "game"
+        POKER_SECTION     = "poker"
+        MANILA_SECTION    = "manila"
+        PERSONAL_SECTION  = "personal"
+        TESTING_SECTION   = "testing"
+        PLAYER_1          = cfg.get(GAME_SECTION,"PLAYER_1")
+        PLAYER_2          = cfg.get(GAME_SECTION,"PLAYER_2")
+        MIXED_STRATEGIES  = distutils.util.strtobool(cfg.get(GAME_SECTION,"MIXED_STRATEGIES"))
+        ANTE              = int(cfg.get(POKER_SECTION,"ANTE"))
+        BET               = int(cfg.get(POKER_SECTION,"BET"))
+        RAISE             = int(cfg.get(POKER_SECTION,"RAISE"))
+        ACE_WRAPS         = distutils.util.strtobool(cfg.get(MANILA_SECTION,"ACE_WRAPS"))
+        LOWEST_CARD       = int(cfg.get(MANILA_SECTION,"LOWEST_CARD"))
+        HIGHEST_CARD      = int(cfg.get(PERSONAL_SECTION,"HIGHEST_CARD"))
+        NUMBER_OF_SUITS   = int(cfg.get(PERSONAL_SECTION,"NUMBER_OF_SUITS"))
+        NUMBER_OF_ROUNDS  = int(cfg.get(PERSONAL_SECTION,"NUMBER_OF_ROUNDS"))
+        DEBUG             = distutils.util.strtobool(cfg.get(TESTING_SECTION,"DEBUG"))
+        SPECIFIC_HOLE     = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_HOLE"))
+        SPECIFIC_ACTIONS1 = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_ACTIONS1"))
+        SPECIFIC_FLOP     = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_FLOP"))
+        SPECIFIC_ACTIONS2 = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_ACTIONS2"))
+        SPECIFIC_TURN     = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_TURN"))
+        SPECIFIC_ACTIONS3 = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_ACTIONS3"))
+        SPECIFIC_RIVER    = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_RIVER"))
+        SPECIFIC_ACTIONS4 = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_ACTIONS4"))
         
         # extra checks
         message = ""
