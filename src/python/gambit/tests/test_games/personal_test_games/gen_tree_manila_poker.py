@@ -439,7 +439,7 @@ def create_game(cfg):
         '''
 
         outcome_string_template = "{} wins {}"
-        outcome_string = outcome_string_template.format(winner.label, multiple)
+        outcome_string = outcome_string_template.format(winner.label, abs(multiple))
         new_outcome = g.tree.outcomes.add(outcome_string)
         new_outcome[0] =  multiple
         new_outcome[1] = -multiple
@@ -844,6 +844,12 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     # this will indicate if we should stop creating cst's
     stop = is_last_round(g, bet_round)
 
+    # we can and should calculate the winner first to avoid repetition
+    if bet_round != 1:
+        winner = get_winner(g, bet_round)
+    else:
+        winner = None
+
     ###############################################
     ########## CREATE ROW 1 AND BRANCHES ##########
     ###############################################
@@ -915,7 +921,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         node = root.children[0].children[1]
         # bets = get_bets(pot/2 + 1*g.BET, pot/2 + 1*g.BET) 
         bets = get_bets(g, pot, actions_so_far, bet_round)
-        create_chance_or_terminal_node(node, bet_round, stop, action, bets)    
+        create_chance_or_terminal_node(node, bet_round, stop, action, winner, bets)    
 
     # at the end of player 2's folding branch, 
     #   we need to create the terminal outcome branch
@@ -927,7 +933,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         node_label_suffix = "{} folds".format(player.label)
         # bets = get_bets(pot/2 + 1*g.BET, pot/2 + 0*g.BET) 
         bets = get_bets(g, pot, actions_so_far, bet_round)
-        create_terminal_node(node, bet_round, node_label_suffix, action, bets)  
+        create_terminal_node(node, bet_round, node_label_suffix, action, winner, bets)  
 
     # at the end of player 2's betting branch, 
     #   we need to create player 1's choice node that has calling and folding branches
@@ -948,7 +954,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         node = root.children[1].children[1]
         # bets = get_bets(pot/2 + 0*g.BET, pot/2 + 0*g.BET) 
         bets = get_bets(g, pot, actions_so_far, bet_round)
-        create_chance_or_terminal_node(node, bet_round, stop, action, bets)
+        create_chance_or_terminal_node(node, bet_round, stop, action, winner, bets)
 
     ###############################################
     ########## CREATE ROW 4 AND BRANCHES ##########
@@ -967,7 +973,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         node = root.children[0].children[0].children[0]
         # bets = get_bets(pot/2 + 2*g.BET, pot/2 + 2*g.BET) 
         bets = get_bets(g, pot, actions_so_far, bet_round)
-        create_chance_or_terminal_node(node, bet_round, stop, action, bets) 
+        create_chance_or_terminal_node(node, bet_round, stop, action, winner, bets) 
 
     # at the end of player 1's folding branch, 
     #   we need to create a terminal node
@@ -979,7 +985,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         node_label_suffix = "{} folds".format(player.label)
         # bets = get_bets(pot/2 + 1*g.BET, pot/2 + 2*g.BET) 
         bets = get_bets(g, pot, actions_so_far, bet_round)
-        create_terminal_node(node, bet_round, node_label_suffix, action, bets)  
+        create_terminal_node(node, bet_round, node_label_suffix, action, winner, bets)  
 
     # at the end of player 1's calling branch, 
     #   we need to create a cst or terminal node
@@ -989,7 +995,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         node = root.children[1].children[0].children[0]
         # bets = get_bets(pot/2 + 1*g.BET, pot/2 + 1*g.BET) 
         bets = get_bets(g, pot, actions_so_far, bet_round)
-        create_chance_or_terminal_node(node, bet_round, stop, action, bets) 
+        create_chance_or_terminal_node(node, bet_round, stop, action, winner, bets) 
 
     # at the end of player 1's folding branch, 
     #   we need to create a terminal node
@@ -1001,7 +1007,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         node_label_suffix = "{} folds".format(player.label)
         # bets = get_bets(pot/2 + 0*g.BET, pot/2 + 1*g.BET) 
         bets = get_bets(g, pot, actions_so_far, bet_round)
-        create_terminal_node(node, bet_round, node_label_suffix, action, bets)   
+        create_terminal_node(node, bet_round, node_label_suffix, action, winner, bets)   
 
 
 def get_bets(g, pot, actions_so_far, bet_round):
@@ -1039,17 +1045,17 @@ def get_bets(g, pot, actions_so_far, bet_round):
     return tuple(bets)
 
 
-def create_terminal_node(node, bet_round, node_label_suffix, action, bets):
+def create_terminal_node(node, bet_round, node_label_suffix, action, winner, bets):
     
     node_label_suffix = "Terminal node. {}".format(node_label_suffix)
-    node.label = set_node_label(node, bet_round, node_label_suffix, True, action, bets)
+    node.label = set_node_label(node, bet_round, node_label_suffix, True, action, winner, bets)
 
 
-def create_chance_or_terminal_node(node, bet_round, stop, action, bets):
+def create_chance_or_terminal_node(node, bet_round, stop, action, winner, bets):
 
     if stop:
         node_label_suffix = "No More Rounds."
-        create_terminal_node(node, bet_round, node_label_suffix, action, bets)
+        create_terminal_node(node, bet_round, node_label_suffix, action, winner, bets)
     else:
         pot = bets[0] + bets[1]
         create_cst(g, node, 0, bet_round+1, pot, action)
@@ -1074,7 +1080,7 @@ def set_node_label_chance(node, bet_round, pot, NODE_DESCRIPTION, is_terminal):
     return set_node_label(node, bet_round, (pot/2,pot/2), NODE_DESCRIPTION, is_terminal, NO_ACTION)
 
 
-def set_node_label(node, bet_round, NODE_DESCRIPTION, is_terminal, action, bets=(0,0)):
+def set_node_label(node, bet_round, NODE_DESCRIPTION, is_terminal, action, winner=None, bets=(0,0)):
     '''
     Should return labels of the form: UNIQUE_ID - NODE_DESCRIPTION
     '''
@@ -1114,9 +1120,22 @@ def set_node_label(node, bet_round, NODE_DESCRIPTION, is_terminal, action, bets=
         elif is_terminal:
             player_id = g.ids.TERMINAL
 
+           
             # we also have to set the node outcome
-            # first, we need to find the winner
-            winner = get_winner(g, bet_round, action, bets)
+            # first, check if the potential showdown winner had folded 
+            folder = get_folder(g, action, bets)
+
+            # if we're here on the first round of betting, someone must've folded...
+            if winner is None and bet_round == 1:
+
+                # set winner to be the non-folder
+                winner = get_other_player(g, folder)
+
+            # if the winner folded
+            if winner is not None and winner == folder:
+
+                # swap winner with other player
+                winner = get_other_player(g, winner)
 
             # second, need to see how much they win
             amount = get_amount(g, winner, bets)
@@ -1140,13 +1159,39 @@ def set_node_label(node, bet_round, NODE_DESCRIPTION, is_terminal, action, bets=
     return label
 
 
-def get_winner(g, bet_round, action, bets):
+def get_other_player(g, player):
+    '''
+    Get the other player in the game.
+    '''
+    
+    other_player = None
+
+    if player == g.tree.players[0]:
+        other_player = g.tree.players[1]
+    else:
+        other_player = g.tree.players[0]
+
+    return other_player
+
+
+def get_winner(g, bet_round):
+    '''
+    Returns the winner of the current scenario.
+    '''
+
+    # ... we need to see who wins the showdown
+    winner = dw.get_showdown_winner(g, bet_round)
+
+    return winner
+
+
+def get_folder(g, action, bets):
     '''
     Returns the winner of the current scenario.
     '''
 
     # the winner we'd like to return
-    winner = None
+    folder = None
     
     # if someone folded... 
     if action == g.ids.FOLD:
@@ -1156,25 +1201,19 @@ def get_winner(g, bet_round, action, bets):
         if bets[0] < bets[1]:
 
             # return player 2
-            winner = g.tree.players[1]
+            folder = g.tree.players[0]
 
         # if player 2 folded...
         elif bets[0] > bets[1]:
 
             # return player 1
-            winner = g.tree.players[0]
+            folder = g.tree.players[1]
 
         else:
             error_msg  = "We are told that someone folded, but both players have the same bet. bets: {}"
             raise Exception(error_msg.format(bets))
-    
-    # otherwise...
-    else:
 
-        # ... we need to see who wins the showdown
-        winner = dw.get_showdown_winner(g, bet_round)
-
-    return winner
+    return folder
         
 
 def get_amount(g, winner, bets):
