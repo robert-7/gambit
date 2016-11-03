@@ -53,6 +53,7 @@ class Poker(gambit.Game):
                  NUMBER_OF_SUITS,
                  NUMBER_OF_ROUNDS,
                  DEBUG,
+                 PLAYER,
                  SPECIFIC_HOLE=[],
                  SPECIFIC_ACTIONS1=[],
                  SPECIFIC_FLOP=[],
@@ -137,9 +138,10 @@ class Poker(gambit.Game):
                              debug_actions        = SPECIFIC_ACTIONS4)]
 
         # testing purposes
-        self.DEBUG = DEBUG
+        self.DEBUG  = DEBUG
 
-        # we also want to
+        # we also want to set the cards and actions that were specified
+        self.PLAYER = PLAYER
         self.set_debug_child_index(SPECIFIC_HOLE, SPECIFIC_FLOP, SPECIFIC_TURN, SPECIFIC_RIVER)
 
         # mappings for Manila Poker
@@ -460,6 +462,7 @@ def create_game(cfg):
                                    NUMBER_OF_SUITS (int: 1->4)
                                    NUMBER_OF_ROUNDS (int: 2->4)
                                    DEBUG (bool)
+                                   PLAYER (PLAYER_1 or PLAYER_2)
                                    SPECIFIC_HOLE (list or None)
                                    SPECIFIC_ACTIONS1 (list or None)
                                    SPECIFIC_FLOP (list or None)
@@ -493,6 +496,7 @@ def create_game(cfg):
         NUMBER_OF_SUITS   = int(cfg.get(PERSONAL_SECTION,"NUMBER_OF_SUITS"))
         NUMBER_OF_ROUNDS  = int(cfg.get(PERSONAL_SECTION,"NUMBER_OF_ROUNDS"))
         DEBUG             = distutils.util.strtobool(cfg.get(TESTING_SECTION,"DEBUG"))
+        PLAYER            = cfg.get(TESTING_SECTION,"PLAYER")
         SPECIFIC_HOLE     = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_HOLE"))
         SPECIFIC_ACTIONS1 = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_ACTIONS1"))
         SPECIFIC_FLOP     = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_FLOP"))
@@ -529,6 +533,8 @@ def create_game(cfg):
             message += "NUMBER_OF_ROUNDS ({}) cannot be less than 2. ".format(NUMBER_OF_ROUNDS)
         if NUMBER_OF_ROUNDS > 4:
             message += "NUMBER_OF_ROUNDS ({}) cannot be less than 4. ".format(NUMBER_OF_ROUNDS)
+        if PLAYER != "PLAYER_1" and PLAYER != "PLAYER_2":
+            message += "PLAYER must be either PLAYER_1 or PLAYER_2. ({}) was provided.".format(PLAYER)
         if message != "":
            raise Exception(message)
     
@@ -552,6 +558,7 @@ def create_game(cfg):
               NUMBER_OF_SUITS=NUMBER_OF_SUITS,
               NUMBER_OF_ROUNDS=NUMBER_OF_ROUNDS,
               DEBUG=DEBUG,
+              PLAYER=PLAYER,
               SPECIFIC_HOLE=SPECIFIC_HOLE,
               SPECIFIC_ACTIONS1=SPECIFIC_ACTIONS1,
               SPECIFIC_FLOP=SPECIFIC_FLOP,
