@@ -18,6 +18,52 @@ import common
 import deuces_wrapper as dw
 
 
+class Action(object):
+    '''
+    These are strings that will identify which characters performed which 
+    actions at a specific moments. This is primarily seen in the output file.
+    '''
+
+    def __init__(self, identifier):
+
+        # actions and characters
+        self.identifier = identifier
+        if identifier == g.ids.BET:
+            full_name = "bets"
+        elif identifier == g.ids.CHECK:
+            full_name = "checks"
+        elif identifier == g.ids.CALL:
+            full_name = "calls"
+        elif identifier == g.ids.FOLD:
+            full_name = "folds"
+        elif identifier == g.ids.RAISE:
+            full_name = "raise"
+        else:
+            error_msg = "This is not a valid identifier: {}"
+            raise Exception(error_msg.format(identifier))
+        self.template = "{}. {} " + full_name
+
+    # def __str__(self):
+    #     '''
+    #     We want a string method 
+    #     '''
+
+    #     # the string to return
+    #     string = None
+
+    #     return string
+
+    def get_identifier(self):
+        return self.identifier
+
+    def get_full_name(self):
+        return self.full_name
+
+    def get_template(self, n, player):
+        formatted_string = self.template.format(n, player.label)
+        return formatted_string
+
+
 class Identifiers(object):
     '''
     These are strings that will identify which characters performed which 
@@ -1063,7 +1109,8 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         action = g.ids.NO_ACTION
         node = root
         player = p1
-        action_labels = ["{}. {} bets", "{}. {} checks"]
+        # action_labels = ["{}. {} bets", "{}. {} checks"]
+        action_labels = [Action(g.ids.BET), Action(g.ids.CHECK)]
         node_label_suffix = "{}'s Decision Node".format(player.label)
         create_action_node(node, player, bet_round, action_labels, node_label_suffix, action, specific_actions, actions_so_far)
 
@@ -1083,7 +1130,8 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         action = actions_so_far[-1]
         node = get_child(root, 0)
         player = p2
-        action_labels = ["{}. {} raises", "{}. {} calls", "{}. {} folds"]
+        # action_labels = ["{}. {} raises", "{}. {} calls", "{}. {} folds"]
+        action_labels = [Action(g.ids.RAISE), Action(g.ids.CALL), Action(g.ids.FOLD)]
         node_label_suffix = "{}'s Response Node given {} Bets".format(player.label, node.parent.player.label)
         create_action_node(node, player, bet_round, action_labels, node_label_suffix, action, specific_actions, actions_so_far)
 
@@ -1094,7 +1142,8 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         action = actions_so_far[-1]
         node = get_child(root, 1)
         player = p2
-        action_labels = ["{}. {} bets", "{}. {} checks"]
+        # action_labels = ["{}. {} bets", "{}. {} checks"]
+        action_labels = [Action(g.ids.BET), Action(g.ids.CHECK)]
         node_label_suffix = "{}'s Response Node given {} Checks".format(player.label, node.parent.player.label)
         create_action_node(node, player, bet_round, action_labels, node_label_suffix, action, specific_actions, actions_so_far)
 
@@ -1114,7 +1163,8 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         action = actions_so_far[-1]
         node = get_child(root.children[0], 0)
         player = p1
-        action_labels = ["{}. {} calls", "{}. {} folds"]
+        # action_labels = ["{}. {} calls", "{}. {} folds"]
+        action_labels = [Action(g.ids.CALL), Action(g.ids.FOLD)]
         node_label_suffix = "{}'s Response Node given {} Bets".format(player.label, node.parent.player.label)
         create_action_node(node, player, bet_round, action_labels, node_label_suffix, action, specific_actions, actions_so_far)
 
@@ -1147,7 +1197,8 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         action = actions_so_far[-1]
         node = get_child(get_child(root,1), 0)
         player = p1
-        action_labels = ["{}. {} calls", "{}. {} folds"]
+        # action_labels = ["{}. {} calls", "{}. {} folds"]
+        action_labels = [Action(g.ids.CALL), Action(g.ids.FOLD)]
         node_label_suffix = "{}'s Response Node given {} Bets".format(player.label, node.parent.player.label)
         create_action_node(node, player, bet_round, action_labels, node_label_suffix, action, specific_actions, actions_so_far)
 
@@ -1266,7 +1317,7 @@ def create_chance_or_terminal_node(node, bet_round, stop, action, winner, bets):
         create_cst(g, node, 0, bet_round+1, pot, action)
 
 
-def create_action_node(node, player, bet_round, action_labels, node_label_suffix, action, specific_actions, actions_so_far):
+def create_action_node(node, player, bet_round, subtree_actions, node_label_suffix, action, specific_actions, actions_so_far):
     # specific_actions | actions_so_far | number_branches
     #       ""         |      ""        |       ALL
     #       ""         |      "B"       |       ALL
@@ -1276,15 +1327,30 @@ def create_action_node(node, player, bet_round, action_labels, node_label_suffix
     if len(specific_actions) > len(actions_so_far):
         n_actions = 1
 
+        # create the action branch
+        iset = node.append_move(player, n_actions)
+
+        # get the action identifier that will tell us which action we need for this branch
+        action_identifier = specific_actions[len(actions_so_far)]
+        for subtree_action_index in range(len(subtree_actions)):
+            subtree_action = subtree_actions[subtree_action_index]
+            if subtree_action.get_identifier() == action_identifier:
+                
+                # set the action label
+                iset.actions[0].label = subtree_action.get_template(subtree_action_index, player)
+                break
+    
     # ... or all action branches
     else:
-        n_actions = len(action_labels)
-    
-    # create the action branch(es)
-    iset = node.append_move(player, n_actions)
-    for i in range(n_actions):
-        action_label = action_labels[i]
-        iset.actions[i].label = action_label.format(i, player.label)
+        n_actions = len(subtree_actions)
+
+        # create the action branches
+        iset = node.append_move(player, n_actions)
+        for i in range(n_actions):
+            subtree_action = subtree_actions[i]
+
+            # set the action label
+            iset.actions[i].label = subtree_action.get_template(i, player)
 
     # label player's choice node
     node.label = set_node_label(node, bet_round, node_label_suffix, False, action)
