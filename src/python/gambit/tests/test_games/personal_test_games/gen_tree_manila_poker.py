@@ -1006,6 +1006,21 @@ def populate_cst(g, iset_chance, repeat, bet_round, pot, all_cards):
 
 def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     
+    def get_child(root, specific_index):
+        '''
+        We want to return the appropriate child.
+        '''
+
+        # if we only have one child, return the first child
+        if len(root.children) == 1:
+            child = root.children[0]
+        
+        # otherwise, return the specific child we should be requesting...
+        else:
+            child = root.children[specific_index]
+
+        return child
+
     # Here is the genernal bst
     # Formula: x = 2n-1
     #               A 
@@ -1037,13 +1052,20 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     ########## CREATE ROW 1 AND BRANCHES ##########
     ###############################################
 
+    # we are interested in just the first action, as a list
+    specific_actions_so_far = ""
+    for specific_action in specific_actions[:0]:
+        specific_actions_so_far += specific_action
+
     # we need to create player 1's betting and checking branches
-    action = g.ids.NO_ACTION
-    node = root
-    player = p1
-    action_labels = ["{}. {} bets", "{}. {} checks"]
-    node_label_suffix = "{}'s Decision Node".format(player.label)
-    create_action_node(node, player, bet_round, action_labels, node_label_suffix, action)
+    actions_so_far = ''.join(g.action_round_paths[0])
+    if actions_so_far.startswith(specific_actions_so_far):
+        action = g.ids.NO_ACTION
+        node = root
+        player = p1
+        action_labels = ["{}. {} bets", "{}. {} checks"]
+        node_label_suffix = "{}'s Decision Node".format(player.label)
+        create_action_node(node, player, bet_round, action_labels, node_label_suffix, action, specific_actions, actions_so_far)
 
     ###############################################
     ########## CREATE ROW 2 AND BRANCHES ##########
@@ -1059,22 +1081,22 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     actions_so_far = ''.join(g.action_round_paths[1])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
-        node = root.children[0]
+        node = get_child(root, 0)
         player = p2
         action_labels = ["{}. {} raises", "{}. {} calls", "{}. {} folds"]
         node_label_suffix = "{}'s Response Node given {} Bets".format(player.label, node.parent.player.label)
-        create_action_node(node, player, bet_round, action_labels, node_label_suffix, action)
+        create_action_node(node, player, bet_round, action_labels, node_label_suffix, action, specific_actions, actions_so_far)
 
     # at the end of player 1's checking branch, 
     #   we need to create player 2's choice node that has raising and checking branches
     actions_so_far = ''.join(g.action_round_paths[2])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
-        node = root.children[1]
+        node = get_child(root, 1)
         player = p2
         action_labels = ["{}. {} bets", "{}. {} checks"]
         node_label_suffix = "{}'s Response Node given {} Checks".format(player.label, node.parent.player.label)
-        create_action_node(node, player, bet_round, action_labels, node_label_suffix, action)
+        create_action_node(node, player, bet_round, action_labels, node_label_suffix, action, specific_actions, actions_so_far)
 
     ###############################################
     ########## CREATE ROW 3 AND BRANCHES ##########
@@ -1090,18 +1112,18 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     actions_so_far = ''.join(g.action_round_paths[3])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
-        node = root.children[0].children[0]
+        node = get_child(root.children[0], 0)
         player = p1
         action_labels = ["{}. {} calls", "{}. {} folds"]
         node_label_suffix = "{}'s Response Node given {} Bets".format(player.label, node.parent.player.label)
-        create_action_node(node, player, bet_round, action_labels, node_label_suffix, action)
+        create_action_node(node, player, bet_round, action_labels, node_label_suffix, action, specific_actions, actions_so_far)
 
     # at the end of player 2's calling branch, 
     #   we need to create the chance branch
     actions_so_far = ''.join(g.action_round_paths[4])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
-        node = root.children[0].children[1]
+        node = get_child(get_child(root,0), 1)
         # bets = get_bets(pot/2 + 1*g.BET, pot/2 + 1*g.BET) 
         bets = get_bets(g, pot, actions_so_far, bet_round)
         create_chance_or_terminal_node(node, bet_round, stop, action, winner, bets)    
@@ -1111,7 +1133,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     actions_so_far = ''.join(g.action_round_paths[5])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
-        node = root.children[0].children[2]
+        node = get_child(get_child(root,0), 2)
         player = p1
         node_label_suffix = "{} folds".format(player.label)
         # bets = get_bets(pot/2 + 1*g.BET, pot/2 + 0*g.BET) 
@@ -1123,18 +1145,18 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     actions_so_far = ''.join(g.action_round_paths[6])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
-        node = root.children[1].children[0]
+        node = get_child(get_child(root,1), 0)
         player = p1
         action_labels = ["{}. {} calls", "{}. {} folds"]
         node_label_suffix = "{}'s Response Node given {} Bets".format(player.label, node.parent.player.label)
-        create_action_node(node, player, bet_round, action_labels, node_label_suffix, action)
+        create_action_node(node, player, bet_round, action_labels, node_label_suffix, action, specific_actions, actions_so_far)
 
     # at the end of player 2's checking branch, 
     #   we need to create a cst or terminal node
     actions_so_far = ''.join(g.action_round_paths[7])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
-        node = root.children[1].children[1]
+        node = get_child(get_child(root,1), 1)
         # bets = get_bets(pot/2 + 0*g.BET, pot/2 + 0*g.BET) 
         bets = get_bets(g, pot, actions_so_far, bet_round)
         create_chance_or_terminal_node(node, bet_round, stop, action, winner, bets)
@@ -1153,7 +1175,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     actions_so_far = ''.join(g.action_round_paths[8])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
-        node = root.children[0].children[0].children[0]
+        node = get_child(get_child(get_child(root, 0), 0), 0)
         # bets = get_bets(pot/2 + 2*g.BET, pot/2 + 2*g.BET) 
         bets = get_bets(g, pot, actions_so_far, bet_round)
         create_chance_or_terminal_node(node, bet_round, stop, action, winner, bets) 
@@ -1163,7 +1185,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     actions_so_far = ''.join(g.action_round_paths[9])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
-        node = root.children[0].children[0].children[1]
+        node = get_child(get_child(get_child(root, 0), 0), 1)
         player = p1
         node_label_suffix = "{} folds".format(player.label)
         # bets = get_bets(pot/2 + 1*g.BET, pot/2 + 2*g.BET) 
@@ -1175,7 +1197,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     actions_so_far = ''.join(g.action_round_paths[10])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
-        node = root.children[1].children[0].children[0]
+        node = get_child(get_child(get_child(root, 1), 0), 0)
         # bets = get_bets(pot/2 + 1*g.BET, pot/2 + 1*g.BET) 
         bets = get_bets(g, pot, actions_so_far, bet_round)
         create_chance_or_terminal_node(node, bet_round, stop, action, winner, bets) 
@@ -1185,7 +1207,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     actions_so_far = ''.join(g.action_round_paths[11])
     if actions_so_far.startswith(specific_actions_so_far):
         action = actions_so_far[-1]
-        node = root.children[1].children[0].children[1]
+        node = get_child(get_child(get_child(root, 1), 0), 1)
         player = p1
         node_label_suffix = "{} folds".format(player.label)
         # bets = get_bets(pot/2 + 0*g.BET, pot/2 + 1*g.BET) 
@@ -1244,8 +1266,21 @@ def create_chance_or_terminal_node(node, bet_round, stop, action, winner, bets):
         create_cst(g, node, 0, bet_round+1, pot, action)
 
 
-def create_action_node(node, player, bet_round, action_labels, node_label_suffix, action):
-    n_actions = len(action_labels)
+def create_action_node(node, player, bet_round, action_labels, node_label_suffix, action, specific_actions, actions_so_far):
+    # specific_actions | actions_so_far | number_branches
+    #       ""         |      ""        |       ALL
+    #       ""         |      "B"       |       ALL
+    #       "B"        |      ""        |        1       (only go down Bet route)
+    #       "B"        |      "B"       |       ALL 
+    # we need to know if we're creating just 1 action branch
+    if len(specific_actions) > len(actions_so_far):
+        n_actions = 1
+
+    # ... or all action branches
+    else:
+        n_actions = len(action_labels)
+    
+    # create the action branch(es)
     iset = node.append_move(player, n_actions)
     for i in range(n_actions):
         action_label = action_labels[i]
