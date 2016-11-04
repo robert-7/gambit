@@ -92,8 +92,7 @@ class Poker(gambit.Game):
         # decks[3] = after dealing all flop cards
         # decks[4] = after dealing the turn card
         # decks[5] = after dealing the river card
-        self.decks             = [[],[],[],[],[],[]] # there are 6
-        self.decks[0]          = self.create_card_labels()
+        self.initial_deck      = self.create_card_labels()
         self.cards_to_ints_map = self.create_card_to_ints_map()
 
         # we need to globally keep track of the betting round we're on
@@ -102,17 +101,17 @@ class Poker(gambit.Game):
                               self.TURN_SIZE,
                               self.RIVER_SIZE]
 
-        # this will hold the card labels that are currently in play
-        self.cards_in_play = [None, None, None, None, None, None, None, None, None]
-
         # we need to globally keep track of the names, amounts to deal, any 
         # repititions in dealing, and the indexof the branch we're currently
         # looking at
         self.rounds = [Round(name                 = "Hole",  
                              deal_size            = self.HAND_SIZE,  
-                             repeat               = 2, 
+                             repeat               = 1, 
                              child_index          = 0, 
                              deal_string_template = "{} received ({},{}) and {} received ({},{}).",
+                             deck                 = [],
+                             debug_cards          = SPECIFIC_HOLE[:],
+                             current_cards        = SPECIFIC_HOLE[:],
                              debug_child_index    = None,
                              debug_actions        = SPECIFIC_ACTIONS1), 
                        Round(name                 = "Flop",  
@@ -120,6 +119,9 @@ class Poker(gambit.Game):
                              repeat               = 1, 
                              child_index          = 0, 
                              deal_string_template = "Flop cards were ({},{},{}).",
+                             deck                 = [],
+                             debug_cards          = SPECIFIC_FLOP[:],
+                             current_cards        = SPECIFIC_FLOP[:],
                              debug_child_index    = None,
                              debug_actions        = SPECIFIC_ACTIONS2), 
                        Round(name                 = "Turn",  
@@ -127,6 +129,9 @@ class Poker(gambit.Game):
                              repeat               = 1, 
                              child_index          = 0, 
                              deal_string_template = "Turn card was ({}).",
+                             deck                 = [],
+                             debug_cards          = SPECIFIC_TURN[:],
+                             current_cards        = SPECIFIC_TURN[:],
                              debug_child_index    = None,
                              debug_actions        = SPECIFIC_ACTIONS3), 
                        Round(name                 = "River", 
@@ -134,6 +139,9 @@ class Poker(gambit.Game):
                              repeat               = 1, 
                              child_index          = 0, 
                              deal_string_template = "River card was ({}).",
+                             deck                 = [],
+                             debug_cards          = SPECIFIC_RIVER[:],
+                             current_cards        = SPECIFIC_RIVER[:],
                              debug_child_index    = None,
                              debug_actions        = SPECIFIC_ACTIONS4)]
 
@@ -142,7 +150,6 @@ class Poker(gambit.Game):
 
         # we also want to set the cards and actions that were specified
         self.PLAYER = PLAYER
-        self.set_debug_child_index(SPECIFIC_HOLE, SPECIFIC_FLOP, SPECIFIC_TURN, SPECIFIC_RIVER)
 
         # mappings for Manila Poker
         self.mpm = dw.Manila_Poker_Mapping()
@@ -191,6 +198,181 @@ class Poker(gambit.Game):
         We'd like to represent the node as [int, int, int, int] where 
         each int is supposed to represent the child index. 
         '''
+
+        def checks(cards, MAX, expected_deck_sizes):
+    
+            # if we're looking at an int, change to a list
+            if type(expected_deck_sizes) is int:
+                expected_deck_sizes = [expected_deck_sizes]
+
+            # if we don't pass in a list
+            if type(cards) is not list:
+                error_msg = "cards must be an int or a list. cards currently is of type {}"
+                raise Exception(error_msg.format(type(cards)))
+
+            # we don't handle lists greater than length 7
+            if len(cards) not in expected_deck_sizes:
+                error_msg = "The length of cards is {} and should be {}."
+                raise Exception(error_msg.format(len(cards), expected_deck_sizes))
+
+            # values in the list should be ints
+            for card in cards:
+                if type(card) is not int:
+                    error_msg = "each card should have ints as values; not {}"
+                    raise Exception(error_msg.format(type(card)))
+                
+                # if cards[0] is greater than MAX, that's a problem
+                if card >= MAX:
+                    error_msg = "card={} which is greater than MAX=({})"
+                    raise Exception(error_msg.format(card, MAX))
+
+
+        def get_order(cards, MAX):
+            '''
+            Return the index of the the cst that handles creating the subtree for these cards
+            '''
+
+            # if we just passed in an int, then return the int -- it's its own index
+            if type(cards) is int:
+                cards = [cards] 
+            
+            # checks to see if cards is a good list of cards
+            checks(cards, MAX, [1,2,3])
+
+            # if we just passed in an int, then return the int -- it's its own index
+            if len(cards) == 1:
+                return cards[0]
+
+            # save the value of the first card
+            x = cards[0]
+            min_index = 0
+
+            # then we have to find the minimum index, given the first card:
+            min_index = min_val_rec(x, MAX, len(cards))
+
+            modifier = x + 1
+            for i in range(1, len(cards)):
+                cards[i] -= modifier
+            MAX -= modifier
+
+            order = min_index + get_order(cards[1:], MAX)
+
+            return order
+
+
+        def get_order_helper(cards, MAX, expected_deck_size, pf_n):
+            
+            # checks to see if cards is a good list of cards
+            checks(cards, MAX, expected_deck_size)
+            
+            # we want to get the order given that any previous values in the list 
+            # won't be there in the new list, altering the indices...
+            modified_cards = []
+            reverse_cards = cards[:pf_n]
+            reverse_cards.sort()
+            reverse_cards.reverse()
+
+            for modified_card in cards[pf_n:]:
+                for compare_card in reverse_cards:
+                    if modified_card > compare_card:
+                        modified_card -= 1
+                modified_cards.append(modified_card)
+
+            # relative order
+            return_order = get_order(modified_cards, MAX-pf_n)
+
+            return return_order
+
+
+        def get_order_hole(cards, MAX):
+            
+            # checks to see if cards is a good list of cards
+            order2 = get_order_helper(cards, MAX, 4, 2)
+            
+            # number of combinations given a fixed first pair
+            combos_given_pair1 = math.combinations(MAX-2, 2)
+
+            # order of the first pair
+            order1 = get_order(cards[0:2], MAX)
+
+            # the actual order, given both pairs
+            order = (order1 * combos_given_pair1) + order2
+
+            return [order]
+            
+
+        def get_order_hole_flop(cards, MAX):
+
+            order_flop = get_order_helper(cards, MAX, 7, 4)
+
+            remaining_orders = get_order_hole(cards[:4], MAX)
+
+            remaining_orders.append(order_flop)
+
+            return remaining_orders
+
+
+        def get_order_hole_flop_turn(cards, MAX):
+
+            # checks to see if cards is a good list of cards
+            order_turn = get_order_helper(cards, MAX, 8, 7)
+
+            remaining_orders = get_order_hole_flop(cards[:7], MAX)
+
+            remaining_orders.append(order_turn)
+
+            return remaining_orders
+
+
+        def get_order_hole_flop_turn_river(cards, MAX):
+
+            # checks to see if cards is a good list of cards
+            order_river = get_order_helper(cards, MAX, 9, 8)
+
+            remaining_orders = get_order_hole_flop_turn(cards[:8], MAX)
+
+            remaining_orders.append(order_river)
+
+            return remaining_orders
+
+
+        def get_order_chooser(card_ints, MAX):
+            orders = None
+            sorted_card_ints = []
+            error_msg = '''Valid size for the list of cards are: 4, 7, 8, 9. 
+                                Current size is {}.'''
+
+            if len(card_ints) >= 2:
+                player1_card_ints = card_ints[:2]
+                player1_card_ints.sort()
+                sorted_card_ints += player1_card_ints
+                if len(card_ints) >= 7:
+                    flop_card_ints = card_ints[4:7]
+                    flop_card_ints.sort()
+                    sorted_card_ints += flop_card_ints
+                    if len(card_ints) >= 8:
+                        turn_card_ints = card_ints[7:8]
+                        turn_card_ints.sort()
+                        sorted_card_ints += turn_card_ints
+                        if len(card_ints) >= 9:
+                            river_card_ints = card_ints[8:9]
+                            river_card_ints.sort()
+                            sorted_card_ints += river_card_ints
+                            if len(card_ints) == 9:
+                                orders = get_order_hole_flop_turn_river(sorted_card_ints, MAX)
+                            else:
+                                raise Exception(error_msg.format(card_ints))
+                        else:
+                            orders = get_order_hole_flop_turn(sorted_card_ints, MAX)
+                    else:
+                        orders = get_order_hole_flop(sorted_card_ints, MAX)
+                else:
+                    orders = get_order_hole(sorted_card_ints, MAX)
+            else:
+                raise Exception(error_msg.format(card_ints))
+
+            return orders
+
 
         # combine the cards to create
         cards = HOLE + FLOP + TURN + RIVER
@@ -265,7 +447,7 @@ class Poker(gambit.Game):
         '''
 
         # get the deck
-        deck = self.decks[0]
+        deck = self.get_initial_deck()
         
         # create the mapping
         mapping = {}
@@ -279,65 +461,40 @@ class Poker(gambit.Game):
         return mapping
 
 
-    def __repr__(self):
-        
-        # the string to return
-        return_str = ""
-
-        return_str += "Decks -- "
-
-        # print out every non-empty list in decks...
-        for i in range(len(self.decks)):
-            if self.decks[i] == []:
-                break
-            else:
-                return_str += "decks[{}]={}, ".format(i, self.decks[i])
-
-        return_str += "Rounds -- "
-
-        # print out every round...
-        for i in range(len(self.rounds)):
-            return_str += "rounds[{}]={}, ".format(i, self.rounds[i])
-
-        return_str += "Player 1 -- "
-
-        # print player 1's cards...
-        for i in range(0, self.HAND_SIZE):
-            return_str += "cards_in_play[{}]={}, ".format(i, self.cards_in_play[i])
-
-        return_str += "Player 2 -- "
-
-        # print player 2's cards...
-        for i in range(2, 2*self.HAND_SIZE):
-            return_str += "cards_in_play[{}]={}, ".format(i, self.cards_in_play[i])
-
-        return_str += "Board -- "
-
-        # print board's cards...
-        for i in range(4, len(self.cards_in_play)):
-            return_str += "cards_in_play[{}]={}, ".format(i, self.cards_in_play[i])
-
-        return return_str
-
-
     def get_hole_cards(self):
-        hole_cards = [self.cards_in_play[0], self.cards_in_play[1], self.cards_in_play[2], self.cards_in_play[3]]
+        hole_cards = self.rounds[0].current_cards[:]
         return hole_cards
 
 
     def get_flop_cards(self):
-        flop_cards = [self.cards_in_play[4], self.cards_in_play[5], self.cards_in_play[6]]
+        flop_cards = self.rounds[1].current_cards[:]
         return flop_cards
 
 
     def get_turn_card(self):
-        turn_card = [self.cards_in_play[7]]
+        turn_card = self.rounds[2].current_cards[:]
         return turn_card
 
 
     def get_river_card(self):
-        river_card = [self.cards_in_play[8]]
+        river_card = self.rounds[3].current_cards[:]
         return river_card
+
+
+    def get_cards_in_play(self, bet_round):
+        
+        cards_in_play  = []
+        
+        if bet_round >= 1:
+            cards_in_play += self.get_hole_cards()
+            if bet_round >= 2:
+                cards_in_play += self.get_flop_cards()
+                if bet_round >= 3:
+                    cards_in_play += self.get_turn_card()
+                    if bet_round >= 4:
+                        cards_in_play += self.get_river_card()
+        
+        return cards_in_play
 
 
     def get_outcome(self, winner, amount):
@@ -393,28 +550,39 @@ class Poker(gambit.Game):
         return number_of_rounds
 
 
+    def get_initial_deck(self):
+        return self.initial_deck
+
+
 class Round(object):
 
-    def __init__(self, name, deal_size, repeat, child_index, deal_string_template, debug_child_index, debug_actions):
+    def __init__(
+        self, 
+        name, 
+        deal_size, 
+        repeat, 
+        child_index, 
+        deal_string_template, 
+        deck,
+        debug_cards,
+        current_cards,
+        debug_child_index, 
+        debug_actions):
+        
         self.name                 = name
         self.deal_size            = deal_size
         self.repeat               = repeat
         self.child_index          = child_index
         self.deal_string_template = deal_string_template
+        self.deck                 = deck
+        self.debug_cards          = debug_cards
+        self.current_cards        = current_cards
         self.debug_child_index    = debug_child_index
         self.debug_actions        = debug_actions
 
-    def __repr__(self):
-        separator          = ""
-        name_str           = "name={name},".format(name = self.name).ljust(12)
-        deal_size_str      = "deal_size={deal_size}, ".format(deal_size = self.deal_size)
-        repeat_str         = "repeat={repeat}, ".format(repeat = self.repeat)
-        child_index_str    = "child_index={child_index}".format(child_index = self.child_index)
-        debug_actions      = "debug_actions={debug_actions}".format(debug_actions = self.debug_actions)
-        return_str_content = separator.join((name_str, deal_size_str, repeat_str, child_index_str, debug_actions))
-        return_str         = "({})".format(return_str_content)
 
-        return return_str
+    def set_deck(self, deck):
+        self.deck = deck
 
 
 def create_game(cfg):
@@ -547,6 +715,14 @@ def create_game(cfg):
     if DEBUG:
         import pudb; pu.db
 
+    # if Nones were specified for debug cards, transform them to empty lists
+    if SPECIFIC_FLOP  is None:
+        SPECIFIC_FLOP  = []
+    if SPECIFIC_TURN  is None:
+        SPECIFIC_TURN  = []
+    if SPECIFIC_RIVER is None:
+        SPECIFIC_RIVER = []
+
     # create the poker game
     g = Poker(MIXED_STRATEGIES=MIXED_STRATEGIES,
               ANTE=ANTE, 
@@ -609,56 +785,6 @@ def create_game(cfg):
     return g
 
 
-def specific_node():
-    '''
-    We'd like to know if we're only creating the tree for a specific node.
-    '''
-
-    # for the time-being, we'll always return True
-    return True
-
-
-def prune_tree():
-    '''
-    We want to set the specific node to be the whole tree.
-    '''
-
-    # the list containing all the indices
-    children_indices = []
-
-    # for every round...
-    for rnd in range(g.get_number_of_rounds()):
-
-        # append the chance child index
-        chance_index = g.rounds[rnd].debug_child_index
-        if chance_index is not None:
-            children_indices.append(chance_index)
-
-        # append the actions list converted to indices
-        actions = tuple(g.rounds[rnd].debug_actions)
-        if actions not in g.atim:
-            raise Exception("actions ({}) is not in our mapping".format(actions))
-        action_indices = g.atim[actions]
-        children_indices += action_indices
-
-    # get the current node
-    node = g.tree.root
-
-    # we need to keep going down the tree until we reach the node in which 
-    # we're interested
-    for child_index in children_indices:
-        node = node.children[child_index]
-
-    # we need to keep replacing the node with its parent node until our node 
-    # is the root
-    while node.parent is not None:
-        node.delete_parent()
-
-    # set the node
-    # g.tree.root.move_tree(node)
-    node.move_tree(g.tree.root)
-
-
 def create_tree(args):
 
     print("Beginning to compute payoff tree".format(g.tree.title))
@@ -666,15 +792,10 @@ def create_tree(args):
     # we want to start this tree by creating a chance node
     create_cst(g=g, 
                root=g.tree.root,
-               repeat=len(g.tree.players)-1, 
+               # we're setting this to zero when there are 2 players
+               repeat=len(g.tree.players)-2, 
                bet_round=1,
                pot=0)
-
-    # if we're interested in the subtree at a specific node...
-    if specific_node():
-
-        # prune the tree to end up with only that node's subtree
-        prune_tree()
 
 
 def create_cst(g, root, repeat, bet_round, pot, action=""):
@@ -685,26 +806,118 @@ def create_cst(g, root, repeat, bet_round, pot, action=""):
     combinations: the number combinations we have so far
     """
 
+    def set_deck(g, bet_round):
+        '''
+        We need to return the number of branches we should be creating. 
+        '''
+
+        # get the number of cards we need to deal out
+        deal_size = get_deal_size(g, bet_round)
+
+        # get the decks we'll be modifying
+        default_deck = g.get_initial_deck()
+        cards_to_remove = []
+
+        # if it's the first chance round... 
+        if bet_round == 1:
+
+            # we need to add: 
+            #    2 hole cards
+            #    3 flop cards (if specified)
+            #    1 turn card  (if specified)
+            #    1 river card (if specified)
+            cards_to_remove += g.rounds[0].debug_cards
+            if g.rounds[1].debug_cards:
+                cards_to_remove += g.rounds[1].debug_cards
+                if g.rounds[2].debug_cards:
+                    cards_to_remove += g.rounds[2].debug_cards
+                    if g.rounds[3].debug_cards:
+                        cards_to_remove += g.rounds[3].debug_cards
+
+            # remove the cards                        
+            get_round(g, bet_round).set_deck([x for x in default_deck if x not in cards_to_remove])
+            
+        # if it's the second chance round...
+        elif bet_round == 2:
+
+            # if we've specified the flop cards, then we only need one branch...
+            if g.rounds[1].debug_cards:
+                get_round(g, bet_round).set_deck(g.rounds[1].debug_cards[:])
+
+            else:
+                # we need to add: 
+                #    2+2 hole cards
+                #    1 turn card  (if specified)
+                #    1 river card (if specified)
+                cards_to_remove += g.rounds[0].debug_cards
+                if g.rounds[2].debug_cards:
+                    cards_to_remove += g.rounds[2].debug_cards
+                    if g.rounds[3].debug_cards:
+                        cards_to_remove += g.rounds[3].debug_cards
+
+                # remove the cards
+                get_round(g, bet_round).set_deck([x for x in default_deck if x not in cards_to_remove])
+
+        # if it's the third chance round...
+        elif bet_round == 3:
+            
+            # if we've specified the flop cards, then we only need one branch...
+            if g.rounds[2].debug_cards:
+                get_round(g, bet_round).set_deck(g.rounds[2].debug_cards[:])
+
+            else:
+                # we need to add: 
+                #    2+2 hole cards
+                #    3 flop cards
+                #    1 river card (if specified)
+                cards_to_remove += g.rounds[0].debug_cards
+                cards_to_remove += g.rounds[1].debug_cards
+                if g.rounds[3].debug_cards:
+                    cards_to_remove += g.rounds[3].debug_cards
+                
+                # remove the cards
+                get_round(g, bet_round).set_deck([x for x in default_deck if x not in cards_to_remove])
+
+        # if it's the fourth chance round...
+        elif bet_round == 4:
+            
+            # if we've specified the flop cards, then we only need one branch...
+            if g.rounds[3].debug_cards:
+                get_round(g, bet_round).set_deck(g.rounds[3].debug_cards[:])
+
+            else:
+                # we need to add: 
+                #    2+2 hole cards
+                #    3 flop cards
+                #    1 turn card
+                cards_to_remove += g.rounds[0].debug_cards
+                cards_to_remove += g.rounds[1].debug_cards
+                cards_to_remove += g.rounds[2].debug_cards
+
+                # remove the cards
+                get_round(g, bet_round).set_deck([x for x in default_deck if x not in cards_to_remove])
+
+
     # we want to hole on to the number of combinations we can deal out
     number_of_deal_combinations = 1
     
     # get the number of cards we need to deal out
     deal_size = get_deal_size(g, bet_round)
 
-    # get the deck size
-    deck_index = get_deck_index(deal_size, repeat, bet_round)
-    deck_size = len(g.decks[deck_index])
-
     # compute the amount
     number_of_dealings_iterable = range(repeat+1)
 
-    for number in number_of_dealings_iterable:
+    # set this round's deck
+    set_deck(g, bet_round)
+    deck_size = len(get_deck(g, bet_round))
 
-        # Calculate the number of card combinations for this round of cards getting flipped
+    for number in number_of_dealings_iterable:
+      
+        # Calculate the number of card combinations for this round
         number_of_deal_combinations *= math.combinations(deck_size, deal_size)
 
         # adjust the deal_size in case we need have one more dealing
-        deck_size -= deal_size
+        # deck_size -= deal_size
 
     # create the branches
     iset_chance = root.append_move(g.tree.players.chance, number_of_deal_combinations)
@@ -724,92 +937,71 @@ def create_cst(g, root, repeat, bet_round, pot, action=""):
 
 def populate_cst(g, iset_chance, repeat, bet_round, pot, all_cards):
 
+    def get_deal_string(g, bet_round, child_index):
+
+        # we need the chance round for which the cards are being dealt, 
+        # and which cards were dealt
+        current_round = get_round(g, bet_round)
+        template = current_round.deal_string_template
+        if bet_round == 1:
+            hole_cards = g.get_hole_cards()
+            return_str = template.format(g.tree.players[0].label, 
+                                         hole_cards[0],
+                                         hole_cards[1],
+                                         g.tree.players[1].label, 
+                                         hole_cards[2],
+                                         hole_cards[3])
+        elif bet_round == 2:
+            flop_cards = g.get_flop_cards()
+            return_str = template.format(flop_cards[0],
+                                         flop_cards[1],
+                                         flop_cards[2])
+        elif bet_round == 3:
+            turn_card = g.get_hole_cards()
+            return_str = template.format(turn_card)
+        elif bet_round == 4:
+            river_card = g.get_hole_cards()
+            return_str = template.format(river_card)
+        else:
+            raise Exception("Bad bet_round was given: {}".format(bet_round))
+
+        # we also want to prepend the child number to the string
+        return_str = "{}. {}".format(child_index, return_str)
+
+        return return_str
+
     # get the number of cards we need to deal out
     deal_size = get_deal_size(g, bet_round)
 
-    # we want to keep a backup of all_cards
-    temp_all_cards = all_cards[:]
-
     # get the decks we'll be modifying
-    current_deck_index = get_deck_index(deal_size, repeat, bet_round)
-    current_deck = get_deck(g, deal_size, repeat, bet_round)
-    next_deck    = g.decks[current_deck_index+1]
-    deck_of_indices = range(len(current_deck))
+    current_deck_index = bet_round
+    current_deck = get_deck(g, bet_round)
 
     # get all possible combinations we want to iterate over
-    all_combinations = list(itertools.combinations(deck_of_indices, deal_size))
+    all_combinations = list(itertools.combinations(current_deck, deal_size))
+    
+    # for every combination...
+    for deal_index in range(len(all_combinations)):
 
-    for deal in all_combinations:
+        # get the current round
+        current_round = get_round(g, bet_round)
 
-        # for every combination...
-        for i in range(len(deal)):
+        # store the current cards 
+        if bet_round == 1 or (bet_round != 1 and not get_round(g, bet_round).debug_cards):
+            current_round.current_cards += list(all_combinations[deal_index])
 
-            # save the current card to cards_in_play
-            cards_in_play_index = get_cards_in_play_index(deal_size, repeat, bet_round)
-            g.cards_in_play[cards_in_play_index+i] = current_deck[deal[i]]
+        # we need to label the branch
+        deal_string = get_deal_string(g, bet_round, deal_index)
+        iset_chance.actions[deal_index].label = deal_string
 
-            # check if we added a bad card to the list
-            # test = g.cards_in_play[:cards_in_play_index+i+1]
-            # if len(test) > len(set(test)):
-            #     raise Exception()
+        # get the current child itself...
+        child = iset_chance.members[0].children[deal_index]
 
-            all_cards.append(current_deck[deal[i]])
+        # create the bst for the child node
+        create_bst(g, child, iset_chance, deal_size, bet_round, pot)
 
-            # copy whatever cards we need to the next deck
-            if i == 0:
-                next_deck += current_deck[:deal[i]]
-            if i == len(deal)-1:
-                next_deck += current_deck[deal[i]+1:]
-            else:
-                next_deck += current_deck[deal[i]+1:deal[i+1]]
-
-        # if we're not repeating, then we can continue to creating the bet branch
-        if repeat == 0:
-
-            # get the current child index... 
-            child_index = get_child_index(g, bet_round)
-
-            # we need to label the branch
-            deal_string = get_deal_string(g, bet_round, child_index)
-            iset_chance.actions[child_index].label = deal_string
-
-            # create the node only if we're not in debug mode and we specified
-            # to create the node, or if we're creating all nodes
-            debug_child_index = get_round(g, bet_round).debug_child_index
-            if debug_child_index is None or debug_child_index == child_index:
-
-                # get the current child itself...
-                child = iset_chance.members[0].children[child_index]
-
-                # create the bst for the child node
-                create_bst(g, child, iset_chance, deal_size, bet_round, pot)
-
-            # increment member_index since we're done creating this tree branch
-            set_child_index(g, bet_round, child_index+1)
-
-            # reset the g.cards_in_play
-            if bet_round <= 4:
-                g.cards_in_play[8] = None
-                if bet_round <= 3:
-                    g.cards_in_play[7] = None
-                    if bet_round <= 2:
-                        g.cards_in_play[6] = None
-                        g.cards_in_play[5] = None
-                        g.cards_in_play[4] = None
-                        if deal_size == 2:
-                            g.cards_in_play[3] = None
-                            g.cards_in_play[2] = None
-
-
-        # otherwise, we're in the hole_cards round and we need to repeat one more time to get player 2s cards
-        else:
-            populate_cst(g, iset_chance, repeat-1, bet_round, pot, all_cards)
-
-        
-        # reset the next deck and all_cards to before we messed with them
-        g.decks[current_deck_index+1] = []
-        next_deck = g.decks[current_deck_index+1]
-        all_cards = temp_all_cards[:]
+        # reset the current_round cards
+        current_round.current_cards = current_round.debug_cards[:]
 
 
 def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
@@ -1223,40 +1415,6 @@ def get_amount(g, winner, bets):
     return amount
 
 
-def get_deal_string(g, bet_round, child_index):
-
-    # we need the chance round for which the cards are being dealt, 
-    # and which cards were dealt
-    current_round = get_round(g, bet_round)
-    template = current_round.deal_string_template
-    if bet_round == 1:
-        hole_cards = g.get_hole_cards()
-        return_str = template.format(g.tree.players[0].label, 
-                                     hole_cards[0],
-                                     hole_cards[1],
-                                     g.tree.players[1].label, 
-                                     hole_cards[2],
-                                     hole_cards[3])
-    elif bet_round == 2:
-        flop_cards = g.get_flop_cards()
-        return_str = template.format(flop_cards[0],
-                                     flop_cards[1],
-                                     flop_cards[2])
-    elif bet_round == 3:
-        turn_card = g.get_hole_cards()
-        return_str = template.format(turn_card)
-    elif bet_round == 4:
-        river_card = g.get_hole_cards()
-        return_str = template.format(river_card)
-    else:
-        raise Exception("Bad bet_round was given: {}".format(bet_round))
-
-    # we also want to prepend the child number to the string
-    return_str = "{}. {}".format(child_index, return_str)
-
-    return return_str
-
-
 def get_minimum_deck_size(n):
     '''
     Returns the minimum deck size, given the number of rounds.
@@ -1345,8 +1503,8 @@ def get_deal_size(g, bet_round):
 
 
 def get_deck_index(deal_size, repeat, bet_round):
-    if   deal_size == 2 and repeat == 1 and bet_round == 1: decks_index = 0
-    elif deal_size == 2 and repeat == 0 and bet_round == 1: decks_index = 1
+    # if   deal_size == 2 and repeat == 1 and bet_round == 1: decks_index = 0
+    if   deal_size == 2 and repeat == 0 and bet_round == 1: decks_index = 1
     elif deal_size == 3 and repeat == 0 and bet_round == 2: decks_index = 2
     elif deal_size == 1 and repeat == 0 and bet_round == 3: decks_index = 3
     elif deal_size == 1 and repeat == 0 and bet_round == 4: decks_index = 4
@@ -1354,9 +1512,9 @@ def get_deck_index(deal_size, repeat, bet_round):
     return decks_index
 
 
-def get_deck(g, deal_size, repeat, bet_round):
-    deck_index = get_deck_index(deal_size, repeat, bet_round)
-    deck = g.decks[deck_index]
+def get_deck(g, bet_round):
+    current_round = get_round(g, bet_round)
+    deck = current_round.deck
     return deck
 
 
@@ -1413,184 +1571,6 @@ def min_val_rec(x, MAX, length):
             min_value += i
 
     return min_value
-
-
-def checks(cards, MAX, expected_deck_sizes):
-    
-    # if we're looking at an int, change to a list
-    if type(expected_deck_sizes) is int:
-        expected_deck_sizes = [expected_deck_sizes]
-
-    # if we don't pass in a list
-    if type(cards) is not list:
-        error_msg = "cards must be an int or a list. cards currently is of type {}"
-        raise Exception(error_msg.format(type(cards)))
-
-    # we don't handle lists greater than length 7
-    if len(cards) not in expected_deck_sizes:
-        error_msg = "The length of cards is {} and should be {}."
-        raise Exception(error_msg.format(len(cards), expected_deck_sizes))
-
-    # values in the list should be ints
-    for card in cards:
-        if type(card) is not int:
-            error_msg = "each card should have ints as values; not {}"
-            raise Exception(error_msg.format(type(card)))
-        
-        # if cards[0] is greater than MAX, that's a problem
-        if card >= MAX:
-            error_msg = "card={} which is greater than MAX=({})"
-            raise Exception(error_msg.format(card, MAX))
-
-
-def get_order(cards, MAX):
-    '''
-    Return the index of the the cst that handles creating the subtree for these cards
-    '''
-
-    # if we just passed in an int, then return the int -- it's its own index
-    if type(cards) is int:
-        cards = [cards] 
-    
-    # checks to see if cards is a good list of cards
-    checks(cards, MAX, [1,2,3])
-
-    # if we just passed in an int, then return the int -- it's its own index
-    if len(cards) == 1:
-        return cards[0]
-
-    # save the value of the first card
-    x = cards[0]
-    min_index = 0
-
-    # then we have to find the minimum index, given the first card:
-    min_index = min_val_rec(x, MAX, len(cards))
-
-    modifier = x + 1
-    for i in range(1, len(cards)):
-        cards[i] -= modifier
-    MAX -= modifier
-
-    order = min_index + get_order(cards[1:], MAX)
-
-    return order
-
-
-def get_order_helper(cards, MAX, expected_deck_size, pf_n):
-    
-    # checks to see if cards is a good list of cards
-    checks(cards, MAX, expected_deck_size)
-    
-    # we want to get the order given that any previous values in the list 
-    # won't be there in the new list, altering the indices...
-    modified_cards = []
-    reverse_cards = cards[:pf_n]
-    reverse_cards.sort()
-    reverse_cards.reverse()
-
-    for modified_card in cards[pf_n:]:
-        for compare_card in reverse_cards:
-            if modified_card > compare_card:
-                modified_card -= 1
-        modified_cards.append(modified_card)
-
-    # relative order
-    return_order = get_order(modified_cards, MAX-pf_n)
-
-    return return_order
-
-
-def get_order_chooser(card_ints, MAX):
-    orders = None
-    sorted_card_ints = []
-    error_msg = '''Valid size for the list of cards are: 4, 7, 8, 9. 
-                        Current size is {}.'''
-
-    if len(card_ints) >= 4:
-        player1_card_ints = card_ints[:2]
-        player2_card_ints = card_ints[2:4]
-        player1_card_ints.sort()
-        player2_card_ints.sort()
-        sorted_card_ints += player1_card_ints
-        sorted_card_ints += player2_card_ints
-        if len(card_ints) >= 7:
-            flop_card_ints    = card_ints[4:7]
-            flop_card_ints.sort()
-            sorted_card_ints += flop_card_ints
-            if len(card_ints) >= 8:
-                turn_card_ints    = card_ints[7:8]
-                turn_card_ints.sort()
-                sorted_card_ints += turn_card_ints
-                if len(card_ints) >= 9:
-                    river_card_ints   = card_ints[8:9]
-                    river_card_ints.sort()
-                    sorted_card_ints += river_card_ints
-                    if len(card_ints) == 9:
-                        orders = get_order_hole_flop_turn_river(sorted_card_ints, MAX)
-                    else:
-                        raise Exception(error_msg.format(card_ints))
-                else:
-                    orders = get_order_hole_flop_turn(sorted_card_ints, MAX)
-            else:
-                orders = get_order_hole_flop(sorted_card_ints, MAX)
-        else:
-            orders = get_order_hole(sorted_card_ints, MAX)
-    else:
-        raise Exception(error_msg.format(card_ints))
-
-    return orders
-
-
-def get_order_hole(cards, MAX):
-    
-    # checks to see if cards is a good list of cards
-    order2 = get_order_helper(cards, MAX, 4, 2)
-    
-    # number of combinations given a fixed first pair
-    combos_given_pair1 = math.combinations(MAX-2, 2)
-
-    # order of the first pair
-    order1 = get_order(cards[0:2], MAX)
-
-    # the actual order, given both pairs
-    order = (order1 * combos_given_pair1) + order2
-
-    return [order]
-    
-
-def get_order_hole_flop(cards, MAX):
-
-    order_flop = get_order_helper(cards, MAX, 7, 4)
-
-    remaining_orders = get_order_hole(cards[:4], MAX)
-
-    remaining_orders.append(order_flop)
-
-    return remaining_orders
-
-
-def get_order_hole_flop_turn(cards, MAX):
-
-    # checks to see if cards is a good list of cards
-    order_turn = get_order_helper(cards, MAX, 8, 7)
-
-    remaining_orders = get_order_hole_flop(cards[:7], MAX)
-
-    remaining_orders.append(order_turn)
-
-    return remaining_orders
-
-
-def get_order_hole_flop_turn_river(cards, MAX):
-
-    # checks to see if cards is a good list of cards
-    order_river = get_order_helper(cards, MAX, 9, 8)
-
-    remaining_orders = get_order_hole_flop_turn(cards[:8], MAX)
-
-    remaining_orders.append(order_river)
-
-    return remaining_orders
 
 
 if __name__ == '__main__':

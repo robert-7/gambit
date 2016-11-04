@@ -137,14 +137,8 @@ def create_hands_and_board(g, bet_round):
     # only if it's value is higher than or equal to the value of the
     # lowest card allowed
 
-    # cards is g.cards_in_play but truncated to ignore any None values
-    cards = []
-    if bet_round == 4:
-        cards = g.cards_in_play
-    elif bet_round == 3:
-        cards = g.cards_in_play[:8]
-    elif bet_round == 2:
-        cards = g.cards_in_play[:7]
+    # get the current cards in play
+    cards = g.get_cards_in_play(bet_round)
 
     for card in cards:
 
