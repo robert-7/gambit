@@ -128,7 +128,7 @@ class Poker(gambit.Game):
                              deal_size            = self.TURN_SIZE,  
                              repeat               = 1, 
                              child_index          = 0, 
-                             deal_string_template = "Turn card was ({}).",
+                             deal_string_template = "Turn card was {}.",
                              deck                 = [],
                              debug_cards          = SPECIFIC_TURN[:],
                              current_cards        = SPECIFIC_TURN[:],
@@ -138,7 +138,7 @@ class Poker(gambit.Game):
                              deal_size            = self.RIVER_SIZE, 
                              repeat               = 1, 
                              child_index          = 0, 
-                             deal_string_template = "River card was ({}).",
+                             deal_string_template = "River card was {}.",
                              deck                 = [],
                              debug_cards          = SPECIFIC_RIVER[:],
                              current_cards        = SPECIFIC_RIVER[:],
@@ -957,10 +957,10 @@ def populate_cst(g, iset_chance, repeat, bet_round, pot, all_cards):
                                          flop_cards[1],
                                          flop_cards[2])
         elif bet_round == 3:
-            turn_card = g.get_hole_cards()
+            turn_card = g.get_turn_card()[0]
             return_str = template.format(turn_card)
         elif bet_round == 4:
-            river_card = g.get_hole_cards()
+            river_card = g.get_river_card()[0]
             return_str = template.format(river_card)
         else:
             raise Exception("Bad bet_round was given: {}".format(bet_round))
