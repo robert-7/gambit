@@ -108,13 +108,26 @@ class Manila_Poker_Evaluator(Evaluator):
 
 def get_showdown_winner(g, bet_round):
 
+    def calculate_hand_rank(g, mpe, hand, board, bet_round):
+        '''
+        Runs mpe.evaluate in a try catch to catch errors.
+        '''
+
+        try:
+            hand_rank = mpe.evaluate(g, hand, board)
+        except:
+            cards = g.get_cards_in_play(bet_round)
+            error_msg = "Failed to calculate rank of hand {} with board {} given cards {} in bet_round ({})."
+            raise Exception(error_msg.format(hand, board, cards, bet_round))
+
+
     # create hands and board
     hand1, hand2, board = create_hands_and_board(g, bet_round)
 
     # evaluate the hands
-    mpe         = Manila_Poker_Evaluator()
-    hand1_rank  = mpe.evaluate(g, hand1, board)
-    hand2_rank  = mpe.evaluate(g, hand2, board)
+    mpe        = Manila_Poker_Evaluator()
+    hand1_rank = calculate_hand_rank(g, mpe, hand1, board, bet_round)
+    hand2_rank = calculate_hand_rank(g, mpe, hand2, board, bet_round)
 
     # the winner to return
     winner = None

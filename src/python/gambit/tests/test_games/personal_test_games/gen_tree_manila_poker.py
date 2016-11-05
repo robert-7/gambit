@@ -872,7 +872,7 @@ def create_cst(g, root, repeat, bet_round, pot, action=""):
             #    3 flop cards (if specified)
             #    1 turn card  (if specified)
             #    1 river card (if specified)
-            cards_to_remove += g.rounds[0].debug_cards
+            cards_to_remove += g.rounds[0].current_cards
             if g.rounds[1].debug_cards:
                 cards_to_remove += g.rounds[1].debug_cards
                 if g.rounds[2].debug_cards:
@@ -895,7 +895,7 @@ def create_cst(g, root, repeat, bet_round, pot, action=""):
                 #    2+2 hole cards
                 #    1 turn card  (if specified)
                 #    1 river card (if specified)
-                cards_to_remove += g.rounds[0].debug_cards
+                cards_to_remove += g.rounds[0].current_cards
                 if g.rounds[2].debug_cards:
                     cards_to_remove += g.rounds[2].debug_cards
                     if g.rounds[3].debug_cards:
@@ -916,8 +916,8 @@ def create_cst(g, root, repeat, bet_round, pot, action=""):
                 #    2+2 hole cards
                 #    3 flop cards
                 #    1 river card (if specified)
-                cards_to_remove += g.rounds[0].debug_cards
-                cards_to_remove += g.rounds[1].debug_cards
+                cards_to_remove += g.rounds[0].current_cards
+                cards_to_remove += g.rounds[1].current_cards
                 if g.rounds[3].debug_cards:
                     cards_to_remove += g.rounds[3].debug_cards
                 
@@ -936,9 +936,9 @@ def create_cst(g, root, repeat, bet_round, pot, action=""):
                 #    2+2 hole cards
                 #    3 flop cards
                 #    1 turn card
-                cards_to_remove += g.rounds[0].debug_cards
-                cards_to_remove += g.rounds[1].debug_cards
-                cards_to_remove += g.rounds[2].debug_cards
+                cards_to_remove += g.rounds[0].current_cards
+                cards_to_remove += g.rounds[1].current_cards
+                cards_to_remove += g.rounds[2].current_cards
 
                 # remove the cards
                 get_round(g, bet_round).set_deck([x for x in default_deck if x not in cards_to_remove])
@@ -1029,12 +1029,15 @@ def populate_cst(g, iset_chance, repeat, bet_round, pot, all_cards):
     # for every combination...
     for deal_index in range(len(all_combinations)):
 
+        deal = all_combinations[deal_index]
+        current_cards_in_play = g.get_cards_in_play(bet_round)
+        
         # get the current round
         current_round = get_round(g, bet_round)
 
         # store the current cards 
         if bet_round == 1 or (bet_round != 1 and not get_round(g, bet_round).debug_cards):
-            current_round.current_cards += list(all_combinations[deal_index])
+            current_round.current_cards += list(deal)
 
         # we need to label the branch
         deal_string = get_deal_string(g, bet_round, deal_index)
@@ -1052,6 +1055,16 @@ def populate_cst(g, iset_chance, repeat, bet_round, pot, all_cards):
 
 def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     
+    def get_winner(g, bet_round):
+        '''
+        Returns the winner of the current scenario.
+        '''
+
+        # ... we need to see who wins the showdown
+        winner = dw.get_showdown_winner(g, bet_round)
+
+        return winner
+
     def get_child(root, specific_index):
         '''
         We want to return the appropriate child.
@@ -1456,17 +1469,6 @@ def get_other_player(g, player):
         other_player = g.tree.players[0]
 
     return other_player
-
-
-def get_winner(g, bet_round):
-    '''
-    Returns the winner of the current scenario.
-    '''
-
-    # ... we need to see who wins the showdown
-    winner = dw.get_showdown_winner(g, bet_round)
-
-    return winner
 
 
 def get_folder(g, action, bets):
