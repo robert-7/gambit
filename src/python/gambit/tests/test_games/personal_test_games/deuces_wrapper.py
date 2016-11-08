@@ -110,7 +110,7 @@ def get_showdown_winner(g, bet_round):
 
     def calculate_hand_rank(g, mpe, hand, board, bet_round):
         '''
-        Runs mpe.evaluate in a try catch to catch errors.
+        Runs mpe.evaluate in a try-catch to catch errors.
         '''
 
         try:
@@ -119,6 +119,8 @@ def get_showdown_winner(g, bet_round):
             cards = g.get_cards_in_play(bet_round)
             error_msg = "Failed to calculate rank of hand {} with board {} given cards {} in bet_round ({})."
             raise Exception(error_msg.format(hand, board, cards, bet_round))
+
+        return hand_rank
 
 
     # create hands and board
