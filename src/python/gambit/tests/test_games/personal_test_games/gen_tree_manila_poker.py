@@ -1418,8 +1418,9 @@ def create_action_node(g, node, player, bet_round, subtree_actions, node_label_s
     # add the current action as well   
     key += action 
 
+    # if the player specified is the current player for whome we're creating the node...
     # if the key is in our infoset_mapping...
-    if key in g.infoset_mapping:
+    if player == g.PLAYER and key in g.infoset_mapping:
 
         # then we jsut need to add this node to its corresponding infoset
         iset = g.infoset_mapping[key]
@@ -1441,8 +1442,6 @@ def create_action_node(g, node, player, bet_round, subtree_actions, node_label_s
         # create the action branch(es)
         index = len(player.infosets)
         iset = node.append_move(player, n_actions)
-        # if player.infosets[index] != iset:
-        #     i = 3 
         iset.label = "Bet Round ({}) - {}".format(bet_round, key)
         # g.infoset_mapping[key] = index
         g.infoset_mapping[key] = iset
