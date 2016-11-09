@@ -127,9 +127,11 @@ def get_showdown_winner(g, bet_round):
     hand1, hand2, board = create_hands_and_board(g, bet_round)
 
     # evaluate the hands
-    mpe        = Manila_Poker_Evaluator()
-    hand1_rank = calculate_hand_rank(g, mpe, hand1, board, bet_round)
-    hand2_rank = calculate_hand_rank(g, mpe, hand2, board, bet_round)
+    mpe         = Manila_Poker_Evaluator()
+    hand1_rank  = calculate_hand_rank(g, mpe, hand1, board, bet_round)
+    hand1_class = mpe.class_to_string(mpe.get_rank_class(hand1_rank))
+    hand2_rank  = calculate_hand_rank(g, mpe, hand2, board, bet_round)
+    hand2_class = mpe.class_to_string(mpe.get_rank_class(hand2_rank))
 
     # the winner to return
     winner = None
@@ -142,7 +144,7 @@ def get_showdown_winner(g, bet_round):
     else:
         winner = None
 
-    return winner
+    return (winner, hand1_class, hand2_class)
 
 
 def create_hands_and_board(g, bet_round):
