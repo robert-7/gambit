@@ -129,7 +129,7 @@ ENV/
 ############# PERSONAL IGNORE ###############
 
 src/python/gambit/tests/test_games/personal_test_games/other
-src/python/gambit/tests/test_games/personal_test_games/Solutions-for-PSP-Games-*
+src/python/gambit/tests/test_games/personal_test_games/output
 src/python/downloads
 stamp-h1
 config.h.in

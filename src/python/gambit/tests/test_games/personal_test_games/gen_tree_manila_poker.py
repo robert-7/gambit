@@ -1780,7 +1780,7 @@ def min_val_rec(x, MAX, length):
     return min_value
 
 
-def compute_expected_values(args):
+def compute_expected_values(g, s):
 
     ###########################################################################
     ################# Step 1: Get Infoset Mapping Key ################## 
@@ -1796,16 +1796,16 @@ def compute_expected_values(args):
     rounds = g.rounds
 
     # for each round
-    for r in rounds:
+    for _round in rounds:
 
         # get the actions of that round
-        actions = r.debug_actions
+        actions = _round.debug_actions
 
         # for each action in those actions
-        for a in actions:
+        for action in actions:
 
             # add it to the key
-            key += a
+            key += action
 
     # by this point we should have our key
     
@@ -1829,24 +1829,13 @@ def compute_expected_values(args):
     # get the infoset stored in g.infoset_mapping
     iset = g.infoset_mapping[key]
 
-    ###########################################################################
-    ################# Step 3: Get Node  ################## 
-    ###########################################################################
-
-    # the dictionary we'd like to return
-    # it should be of the form { Action : Expectation ,  Action : Expectation }
-    expectations = {}
-
-    ###########################################################################
-    ################# Step 4: Get Expected Values of Node  ################## 
-    ###########################################################################
-
-    return expectations
+    common.print_expected_values(g, s, iset)
 
 if __name__ == '__main__':
 
     # create the game tree and saver objects, solve the game, print the solutions to a file, print the game
     s = compute_time_of(0, "Creating Saver", common.create_saver, ())
+    
     g = compute_time_of(1, "Creating Game", create_game, (sys.argv,))
     try:
         compute_time_of(2, "Creating Tree", create_tree, (g,))
@@ -1855,4 +1844,4 @@ if __name__ == '__main__':
     except (KeyboardInterrupt):
         pass
     compute_time_of(5, "Printing Game", common.print_game, (g, s))
-    compute_time_of(6, "Computing Expected Values", compute_expected_values, (g,))
+    compute_time_of(6, "Computing Expected Values", compute_expected_values, (g, s))
