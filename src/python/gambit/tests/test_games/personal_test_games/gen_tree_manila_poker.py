@@ -565,7 +565,7 @@ class Poker(gambit.Game):
         return cards_in_play
 
 
-    def get_outcome(self, amount):
+    def get_outcome(self, winner, amount):
         '''
         The amount won is always the loser's contribution to the pot.
         If player 1 is the winner, the index of the outcome is: 
@@ -578,16 +578,16 @@ class Poker(gambit.Game):
         index = 0
 
         # if there is no winner
-        if g.winner is None:
+        if winner is None:
             index = 0
         
         # there is a winner...
         else: 
 
             # if we gave a bad winner
-            if g.winner not in self.tree.players:
+            if winner not in self.tree.players:
                 error_msg = "Our winner is not a player, nor is it None. winner: {}"
-                raise Exception(error_msg.format(g.winner))
+                raise Exception(error_msg.format(winner))
 
             # if amount is not an int...
             if type(amount) is not int:
@@ -600,11 +600,11 @@ class Poker(gambit.Game):
                 raise Exception(error_msg.format(amount))
 
             # if player 1 won...
-            if g.winner == self.tree.players[0]:
+            if winner == self.tree.players[0]:
                 index = amount - 1
 
             # if player 2 won...
-            elif g.winner == self.tree.players[1]:
+            elif winner == self.tree.players[1]:
                 index = amount
         
         # get the outcome
@@ -862,6 +862,20 @@ def create_game(cfg):
     g.tree = gambit.Game.new_tree()
     g.tree.players.add(PLAYER_1)
     g.tree.players.add(PLAYER_2)
+
+    # set the focus player
+    if PLAYER == "PLAYER_1":
+        g.PLAYER = g.tree.players[0]
+
+    elif PLAYER == "PLAYER_2":
+        g.PLAYER = g.tree.players[1]
+
+    else:
+        error_msg = '''({}) is an unrecognized option for PLAYER.
+        Valid options are PLAYER_1 or PLAYER_2.'''
+        raise Exception(error_msg.format(PLAYER))
+
+    # set the title
     TITLE_FORMAT = "PSP Game with {} players and cards from range {} to {} with {} suits (via tree-method)"
     g.tree.title = TITLE_FORMAT.format(len(g.tree.players), g.LOWEST_CARD, g.HIGHEST_CARD, g.NUMBER_OF_SUITS)
 
@@ -1420,7 +1434,10 @@ def create_action_node(g, node, player, bet_round, subtree_actions, node_label_s
 
     # if the player specified is the current player for whome we're creating the node...
     # if the key is in our infoset_mapping...
-    if player == g.PLAYER and key in g.infoset_mapping:
+    
+    is_focus_player = (player == g.PLAYER)
+    key_in_infoset_mapping = (key in g.infoset_mapping)
+    if is_focus_player and key_in_infoset_mapping:
 
         # then we jsut need to add this node to its corresponding infoset
         iset = g.infoset_mapping[key]
@@ -1485,6 +1502,9 @@ def set_node_label(g, node, bet_round, NODE_DESCRIPTION, is_terminal, action, be
     Should return labels of the form: UNIQUE_ID - NODE_DESCRIPTION
     '''
 
+    # we want a copy of the winner
+    scenario_winner = g.winner
+
     # if the node is the root node, just return the n
     root = g.tree.root
 
@@ -1526,22 +1546,18 @@ def set_node_label(g, node, bet_round, NODE_DESCRIPTION, is_terminal, action, be
             folder = get_folder(g, action, bets)
 
             # if we're here on the first round of betting, someone must've folded...
-            if g.winner is None and bet_round == 1:
+            # also, if there is a winner and they folded...
+            if (bet_round == 1) or \
+               (scenario_winner is not None and scenario_winner == folder):
 
-                # set g.winner to be the non-folder
-                g.winner = get_other_player(g, folder)
-
-            # if the g.winner folded
-            if g.winner is not None and g.winner == folder:
-
-                # swap g.winner with other player
-                g.winner = set_other_player(g, g.winner)
+                # set scenario_winner to be the non-folder
+                scenario_winner = set_other_player(g, folder)
 
             # second, need to see how much they win
-            amount = get_amount(g, bets)
+            amount = get_amount(scenario_winner, bets)
 
             # third, we get the outcome
-            outcome = g.get_outcome(amount)
+            outcome = g.get_outcome(scenario_winner, amount)
 
             # finally, we set the outcome
             node.outcome = outcome
@@ -1606,13 +1622,13 @@ def get_folder(g, action, bets):
     return folder
         
 
-def get_amount(g, bets):
+def get_amount(winner, bets):
     '''
     Get amount won.
     '''
 
     # if we have a tie
-    if g.winner == None:
+    if winner == None:
         amount = 0
 
     # it's just the minimum payoff
