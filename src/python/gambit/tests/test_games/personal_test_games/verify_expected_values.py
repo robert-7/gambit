@@ -1,7 +1,7 @@
 import os
 import pudb; pu.db
 
-player = 2
+player = 1
 output_folder = "output"
 
 # cd into output folder
@@ -79,7 +79,8 @@ for line in lines:
             elif skipped_line.startswith("XC1-YC1"):
                 probability = 1.0/4
             else:
-                raise Exception("bad line {}".format(skipped_line))
+                error_msg = "Bad line {}. Perhaps your player number is incorrect."
+                raise Exception(error_msg.format(skipped_line))
 
         # otherwise...
         else:
@@ -93,7 +94,8 @@ for line in lines:
             elif skipped_line.startswith("XC1-YC1"):
                 probability = 1.0/2
             else:
-                raise Exception("bad line {}".format(skipped_line))
+                error_msg = "Bad line {}. Perhaps your player number is incorrect."
+                raise Exception(error_msg.format(skipped_line))
 
         # get the expected value of making that choice
         expected_value = outcome*probability

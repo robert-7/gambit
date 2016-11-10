@@ -147,6 +147,129 @@ class Poker(gambit.Game):
                               self.TURN_SIZE,
                               self.RIVER_SIZE]
 
+        # we should check whether there is anything wrong with our given cards
+        # and actions, and caao is short for "cards and actions ordered"
+        acaao = [ (SPECIFIC_HOLE,     "SPECIFIC_HOLE",     "cards",   2, 2),
+                  (SPECIFIC_ACTIONS1, "SPECIFIC_ACTIONS1", "actions", 0, 3),
+                  (SPECIFIC_FLOP,     "SPECIFIC_FLOP",     "cards",   0, 3),
+                  (SPECIFIC_ACTIONS2, "SPECIFIC_ACTIONS2", "actions", 0, 3),
+                  (SPECIFIC_TURN,     "SPECIFIC_TURN",     "cards",   0, 1),
+                  (SPECIFIC_ACTIONS3, "SPECIFIC_ACTIONS3", "actions", 0, 3),
+                  (SPECIFIC_RIVER,    "SPECIFIC_RIVER",    "cards",   0, 1),
+                  (SPECIFIC_ACTIONS4, "SPECIFIC_ACTIONS4", "actions", 0, 3) ]
+        
+        first_incomplete_coa = None
+        # valid_actions = ["", "B", "C", "K", "R"]
+        # valid_last_actions = ["C", "K"]
+        valid_complete_actions = [
+            ["B", "R", "K"],
+            ["B", "R", "F"],
+            ["B", "K"],
+            ["B", "F"],
+            ["C", "B", "K"],
+            ["C", "B", "F"],
+            ["C", "C"]
+        ]
+
+        valid_incomplete_actions = [
+            ["B", "R"],
+            ["B"],
+            ["C", "B"],
+            ["C"]
+        ]
+
+        # for every card or action, or cao...
+        for index_coa in range(len(acaao)):
+            coa_tuple = acaao[index_coa]
+
+            # get the values in which we're interested
+            coa           = coa_tuple[0]
+            len_coa       = len(coa)
+            name          = coa_tuple[1]
+            object_types  = coa_tuple[2]
+            min_len       = coa_tuple[3]
+            max_len       = coa_tuple[4]
+
+            # check the lengths
+            if len_coa < min_len:
+                error_msg = '''List for {} too short. 
+                Number of {} provided must be at least {}.'''
+                raise Exception(error_msg.format(name, object_types, min_len))
+            if len_coa > max_len:
+                error_msg = '''List for {} too long. 
+                Number of {} provided must be at most {}.'''
+                raise Exception(error_msg.format(name, object_types, max_len))
+
+            if object_types == "cards" and (min_len < len_coa < max_len):
+                error_msg = '''List of cards for {} has bad length. 
+                Must be of length {} or {}.'''
+                raise Exception(error_msg.format(name, min_len, max_len))
+
+            
+
+            if not first_incomplete_coa:
+                if object_types == "actions": 
+                    if coa in valid_incomplete_actions:
+                        first_incomplete_coa = name
+                elif object_types == "cards":
+                    if len_coa == 0:
+                        first_incomplete_coa = name
+
+            elif first_incomplete_coa:
+                if object_types == "actions": 
+                    if coa:
+                        error_msg = '''List for {} should be empty since the 
+                        list for {} was incomplete.'''
+                        raise Exception(error_msg.format(name, acaao[index_coa-1][1]))
+                elif object_types == "cards":
+                    if coa:
+                        error_msg = '''List for {} should be empty since the 
+                        list for {} was incomplete.'''
+                        raise Exception(error_msg.format(name, acaao[index_coa-1][1]))
+
+
+            # # we also need to check each list for incomplete fillings
+            # for item_index in range(max_len):
+                
+            #     # get the item if possible
+            #     if item_index >= len_coa and len_coa:
+            #         first_incomplete_coa = name
+            #         break
+
+            #     # get the item
+            #     item = coa[item_index]
+
+            #     # we want to verify if the actions are okay
+            #     # if this is an invalid action... 
+            #     if object_types == "actions" 
+            #         if item not in valid_complete_actions:
+                    
+            #         # raise an error
+            #         error_msg = '''List for {} has bad action "{}".
+            #         Should be in {}.'''
+            #         raise Exception(error_msg.format(name, item, valid_actions))
+
+            #     # if we haven't found one yet...
+            #     if first_incomplete_coa == None:
+
+            #         # but we just found one...
+            #         if not item:
+                        
+            #             # record index of incompletion
+            #             first_incomplete_coa = name
+
+            #     # otherwise...
+            #     else:
+
+            #         # if we found one that's full...
+            #         if item:
+                        
+            #             # raise an error
+            #             error_msg = '''List for {} can't have skipped {}.'''
+            #             raise Exception(error_msg.format(first_incomplete_coa, 
+            #                                              object_types))
+
+
         # we need to globally keep track of the names, amounts to deal, any 
         # repititions in dealing, and the indexof the branch we're currently
         # looking at
