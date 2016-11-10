@@ -530,7 +530,19 @@ class Poker(gambit.Game):
 
 
     def get_hole_cards(self):
-        hole_cards = self.rounds[0].current_cards[:]
+        
+        # if the game is focused on player 1...
+        if self.PLAYER == self.tree.players[0]:
+            player_1_cards = self.rounds[0].current_cards[:2]
+            player_2_cards = self.rounds[0].current_cards[2:]
+        
+        # if the game is focused on player 2...
+        else:
+            player_1_cards = self.rounds[0].current_cards[2:]
+            player_2_cards = self.rounds[0].current_cards[:2]
+
+        hole_cards = player_1_cards + player_2_cards
+
         return hole_cards
 
 
@@ -830,6 +842,9 @@ def create_game(cfg):
         import pudb; pu.db
 
     # if Nones were specified for debug cards, transform them to empty lists
+    if not SPECIFIC_HOLE:
+        error_msg = "SPECIFIC_HOLE cannot be empty. Given SPECIFIC_HOLE ({})"
+        raise Exception(error_msg.format(SPECIFIC_HOLE))   
     if SPECIFIC_FLOP  is None:
         SPECIFIC_FLOP  = []
     if SPECIFIC_TURN  is None:
@@ -1117,7 +1132,8 @@ def populate_cst(g, iset_chance, repeat, bet_round, pot, all_cards):
         # get the current round
         current_round = get_round(g, bet_round)
 
-        # store the current cards 
+        # if it's the first bet round
+        # or if it's not the first bet round adn the debug cards are empty
         if bet_round == 1 or (bet_round != 1 and not get_round(g, bet_round).debug_cards):
             current_round.current_cards += list(deal)
 
