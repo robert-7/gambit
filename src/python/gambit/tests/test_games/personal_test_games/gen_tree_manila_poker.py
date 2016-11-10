@@ -1780,6 +1780,69 @@ def min_val_rec(x, MAX, length):
     return min_value
 
 
+def compute_expected_values(args):
+
+    ###########################################################################
+    ################# Step 1: Get Infoset Mapping Key ################## 
+    ###########################################################################
+
+    # We first need to get all the actions that were specified in the
+    # configuration file
+
+    # the key we'll use in the g.infoset_mapping
+    key = ""
+
+    # get the rounds
+    rounds = g.rounds
+
+    # for each round
+    for r in rounds:
+
+        # get the actions of that round
+        actions = r.debug_actions
+
+        # for each action in those actions
+        for a in actions:
+
+            # add it to the key
+            key += a
+
+    # by this point we should have our key
+    
+    ###########################################################################
+    ################# Step 2: Get Infoset  ################## 
+    ###########################################################################
+
+    # if the key is not in the info_set for some reason...
+    if key not in g.infoset_mapping:
+
+        # that's a problem
+        key_missing_template = "Oops, your key ({}) is not in the infoset."
+        key_missing = key_missing_template.format(key)
+        valid_keys_template = '''Valid infoset key-value pairs are:\n{}
+        Ensure your key corresponds to an action node owned by the player 
+        specified in the configuration file. Also, ensure it correspond to a 
+        valid node.'''
+        valid_keys = valid_keys_template.format(g.infoset_mapping.keys())
+        raise Exception("{} {}".format(key_missing, valid_keys))
+
+    # get the infoset stored in g.infoset_mapping
+    iset = g.infoset_mapping[key]
+
+    ###########################################################################
+    ################# Step 3: Get Node  ################## 
+    ###########################################################################
+
+    # the dictionary we'd like to return
+    # it should be of the form { Action : Expectation ,  Action : Expectation }
+    expectations = {}
+
+    ###########################################################################
+    ################# Step 4: Get Expected Values of Node  ################## 
+    ###########################################################################
+
+    return expectations
+
 if __name__ == '__main__':
 
     # create the game tree and saver objects, solve the game, print the solutions to a file, print the game
@@ -1791,4 +1854,5 @@ if __name__ == '__main__':
         # compute_time_of(4, "Printing Solutions", common.print_solutions, (solutions,s)) 
     except (KeyboardInterrupt):
         pass
-    compute_time_of(5, "Printing Game", common.print_game, (g,s))
+    compute_time_of(5, "Printing Game", common.print_game, (g, s))
+    compute_time_of(6, "Computing Expected Values", compute_expected_values, (g,))
