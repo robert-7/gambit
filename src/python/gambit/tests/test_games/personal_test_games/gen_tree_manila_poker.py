@@ -144,7 +144,8 @@ class Poker(gambit.Game):
                 ["B", "R"],
                 ["B"],
                 ["C", "B"],
-                ["C"]
+                ["C"],
+                []
             ]
             
             # cards that have been seen so far
