@@ -1557,6 +1557,10 @@ def create_action_node(g, node, player, bet_round, subtree_actions, node_label_s
     #       "B"        |      ""        |        1       (only go down Bet route)
     #       "B"        |      "B"       |       ALL 
     
+    ###########################################################################
+    ############################ GET KEY TO INFOSET ###########################
+    ###########################################################################
+
     # get infoset_mapping_key
     parent_id = node.parent.label.split()[0]
     key = ""
@@ -1574,12 +1578,25 @@ def create_action_node(g, node, player, bet_round, subtree_actions, node_label_s
     # add the current action as well   
     key += action 
 
-    # if the player specified is the current player for whome we're creating the node...
-    # if the key is in our infoset_mapping...
-    
+    ###########################################################################
+    ########################## SOME BOOLEANS WE NEED ##########################
+    ###########################################################################
+
+    # the player specified is the current player 
+    # for whom we're creating the node...
     is_focus_player = (player == g.PLAYER)
+
+    # if the key is in our infoset_mapping...
     key_in_infoset_mapping = (key in g.infoset_mapping)
-    if is_focus_player and key_in_infoset_mapping:
+
+    # we need to know if we're creating just 1 action branch
+    create_one_branch = (len(specific_actions) > len(actions_so_far))
+
+    ###########################################################################
+    ######################### ADD TO INFORMATION SET ##########################
+    ###########################################################################
+
+    if is_focus_player and key_in_infoset_mapping and not create_one_branch:
 
         # then we jsut need to add this node to its corresponding infoset
         iset = g.infoset_mapping[key]
@@ -1587,11 +1604,15 @@ def create_action_node(g, node, player, bet_round, subtree_actions, node_label_s
         # iset = player.infosets[index]
         node.append_move(iset)
 
+    ###########################################################################
+    ####################### CREATE NEW INFORMATION SET ########################
+    ###########################################################################
+
     # otherwise, we need to add the infoset
     else: 
 
         # we need to know if we're creating just 1 action branch
-        if len(specific_actions) > len(actions_so_far):
+        if create_one_branch:
             n_actions = 1
 
         # ... or all action branches
@@ -1604,9 +1625,13 @@ def create_action_node(g, node, player, bet_round, subtree_actions, node_label_s
         iset.label = "Bet Round ({}) - {}".format(bet_round, key)
         # g.infoset_mapping[key] = index
         g.infoset_mapping[key] = iset
+
+        #######################################################################
+        ######################### LABEL EACH ACTION ###########################
+        #######################################################################
             
         # if we created just 1 action branch
-        if len(specific_actions) > len(actions_so_far):
+        if create_one_branch:
 
             # get the action identifier that will tell us which action we need for this branch
             action_identifier = specific_actions[len(actions_so_far)]
@@ -1626,6 +1651,10 @@ def create_action_node(g, node, player, bet_round, subtree_actions, node_label_s
 
                 # set the action label
                 iset.actions[i].label = subtree_action.get_template(i, player)
+
+    #######################################################################
+    ########################### LABEL THE NODE ############################
+    #######################################################################
 
     # label player's choice node
     node.label = set_node_label(g, node, bet_round, node_label_suffix, False, action)
@@ -1712,8 +1741,8 @@ def set_node_label(g, node, bet_round, NODE_DESCRIPTION, is_terminal, action, be
 
     # this is the label we'd like to return
     card_class = "{} has a {} and {} has a {}".format(g.tree.players[0].label, g.player1_class, g.tree.players[1].label, g.player2_class)
-    label = "{} - {}".format(UNIQUE_ID, card_class)
-    # label = "{}".format(UNIQUE_ID)
+    # label = "{} - {}".format(UNIQUE_ID, card_class)
+    label = "{}".format(UNIQUE_ID)
 
     return label
 
