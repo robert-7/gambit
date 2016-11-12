@@ -2,7 +2,7 @@
 GIT_INSTALL_DIR=/home/vagrant/Desktop/code/github
 mkdir -p $GIT_INSTALL_DIR
 cd $GIT_INSTALL_DIR
-git clone git://github.com/gambitproject/gambit.git gambit.git
+git clone git://github.com/robert-7/gambit.git gambit.git
 cd gambit.git
 
 # install packages
