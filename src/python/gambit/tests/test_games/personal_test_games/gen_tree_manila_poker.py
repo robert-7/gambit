@@ -99,6 +99,7 @@ class Poker(gambit.Game):
                  NUMBER_OF_SUITS,
                  NUMBER_OF_ROUNDS,
                  DEBUG,
+                 SHORT_LABELS,
                  PLAYER,
                  SPECIFIC_HOLE=[],
                  SPECIFIC_ACTIONS1=[],
@@ -318,7 +319,8 @@ class Poker(gambit.Game):
                              debug_actions        = SPECIFIC_ACTIONS4)]
 
         # testing purposes
-        self.DEBUG  = DEBUG
+        self.DEBUG        = DEBUG
+        self.SHORT_LABELS = SHORT_LABELS
 
         # we also want to set the cards and actions that were specified
         self.PLAYER = PLAYER
@@ -881,7 +883,14 @@ def create_game(cfg):
                                    HIGHEST_CARD (int: LOWEST_CARD->14)
                                    NUMBER_OF_SUITS (int: 1->4)
                                    NUMBER_OF_ROUNDS (int: 2->4)
+                                   SAVED_GAMES_DIRECTORY (str)
+                                   OUTPUTS_DIRECTORY (str)
+                                   OUTPUT_DIRECTORY (str with '{}')
+                                   GAME_TREE_FILE (str)
+                                   EXPECTED_VALUES_FILE (str)
+                                   SOLUTIONS_FILE (str)
                                    DEBUG (bool)
+                                   SHORT_LABELS (bool)
                                    PLAYER (PLAYER_1 or PLAYER_2)
                                    SPECIFIC_HOLE (list or None)
                                    SPECIFIC_ACTIONS1 (list or None)
@@ -916,6 +925,7 @@ def create_game(cfg):
         NUMBER_OF_SUITS   = int(cfg.get(PERSONAL_SECTION,"NUMBER_OF_SUITS"))
         NUMBER_OF_ROUNDS  = int(cfg.get(PERSONAL_SECTION,"NUMBER_OF_ROUNDS"))
         DEBUG             = distutils.util.strtobool(cfg.get(TESTING_SECTION,"DEBUG"))
+        SHORT_LABELS      = distutils.util.strtobool(cfg.get(TESTING_SECTION,"SHORT_LABELS"))
         PLAYER            = cfg.get(TESTING_SECTION,"PLAYER")
         SPECIFIC_HOLE     = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_HOLE"))
         SPECIFIC_ACTIONS1 = literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_ACTIONS1"))
@@ -989,6 +999,7 @@ def create_game(cfg):
               NUMBER_OF_SUITS=NUMBER_OF_SUITS,
               NUMBER_OF_ROUNDS=NUMBER_OF_ROUNDS,
               DEBUG=DEBUG,
+              SHORT_LABELS=SHORT_LABELS,
               PLAYER=PLAYER,
               SPECIFIC_HOLE=SPECIFIC_HOLE,
               SPECIFIC_ACTIONS1=SPECIFIC_ACTIONS1,
@@ -1562,21 +1573,45 @@ def create_action_node(g, node, player, bet_round, subtree_actions, node_label_s
     ###########################################################################
 
     # get infoset_mapping_key
-    parent_id = node.parent.label.split()[0]
     key = ""
 
-    # split up the tuple
-    parts = parent_id.split("-")
-    for part in parts:
+    temp_node = node
 
-        # don't include CHANCE mentions
-        # also, the last part contains only the players name
-        # and not the action, so we can't use it
-        if part[0] != g.ids.CHANCE and len(part) > 1:
-            key += part[1]
+    # if we specified we want short labels
+    if g.SHORT_LABELS:
+        
+        # until we reach the root node...
+        while temp_node != g.tree.root:
+            
+            temp_node = temp_node.parent
+            # temp_player = temp_node.player.label
+            # temp_label  = temp_node.label
+
+            # unless it's not a chance node...
+            # if (temp_node.player != g.tree.players.chance):
+
+            # we want to keep adding the parents label
+            key = temp_node.label + key
+
+    
+    # otherwise...
+    else:
+
+        # the parent's id    
+        parent_id = node.parent.label.split()[0]
+
+        # split up the tuple
+        parts = parent_id.split("-")
+        for part in parts:
+
+            # don't include CHANCE mentions
+            # also, the last part contains only the players name
+            # and not the action, so we can't use it
+            if part[0] != g.ids.CHANCE and len(part) > 1:
+                key += part[1]
         
     # add the current action as well   
-    key += action 
+    key = key + action 
 
     ###########################################################################
     ########################## SOME BOOLEANS WE NEED ##########################
@@ -1596,7 +1631,7 @@ def create_action_node(g, node, player, bet_round, subtree_actions, node_label_s
     ######################### ADD TO INFORMATION SET ##########################
     ###########################################################################
 
-    if is_focus_player and key_in_infoset_mapping and not create_one_branch:
+    if is_focus_player and key_in_infoset_mapping:
 
         # then we jsut need to add this node to its corresponding infoset
         iset = g.infoset_mapping[key]
@@ -1682,6 +1717,55 @@ def set_node_label(g, node, bet_round, NODE_DESCRIPTION, is_terminal, action, be
     if node == root:
         UNIQUE_ID = g.ids.CHANCE
 
+    # A for Player 1, B for Player 2, C for Chance, T for Terminal
+    player = node.player
+
+    # we need to check if this is a terminal node
+    # if player is None:
+    #     is_terminal = True
+    # else:
+    #     is_terminal = False
+
+    if player == g.tree.players[0]:
+        player_id = g.ids.PLAYER1
+    elif player == g.tree.players[1]:
+        player_id = g.ids.PLAYER2
+    elif player == g.tree.players.chance:
+        player_id = g.ids.CHANCE
+    elif is_terminal:
+        player_id = g.ids.TERMINAL
+
+       
+        # we also have to set the node outcome
+        # first, check if the potential showdown winner had folded 
+        folder = get_folder(g, action, bets)
+
+        # if we're here on the first round of betting, someone must've folded...
+        # also, if there is a winner and they folded...
+        if (bet_round == 1) or \
+           (scenario_winner is not None and scenario_winner == folder):
+
+            # set scenario_winner to be the non-folder
+            scenario_winner = set_other_player(g, folder)
+
+        # second, need to see how much they win
+        amount = get_amount(scenario_winner, bets)
+
+        # third, we get the outcome
+        outcome = g.get_outcome(scenario_winner, amount)
+
+        # finally, we set the outcome
+        node.outcome = outcome
+
+    else:
+        raise Exception("I have no idea what player this is: {}".format(player))
+
+    # if we specified we want short labels
+    if g.SHORT_LABELS:
+        
+        # the label should just be the action itself
+        label = action
+
     # otherwise, we need to create the label by looking at the parent node
     else:
         
@@ -1693,56 +1777,18 @@ def set_node_label(g, node, bet_round, NODE_DESCRIPTION, is_terminal, action, be
         # returns: C0-A0-B
         UNIQUE_ID_PARENT = node.parent.label.split()[0]
 
-        # A for Player 1, B for Player 2, C for Chance, T for Terminal
-        player = node.player
-
-        # we need to check if this is a terminal node
-        # if player is None:
-        #     is_terminal = True
-        # else:
-        #     is_terminal = False
-
-        if player == g.tree.players[0]:
-            player_id = g.ids.PLAYER1
-        elif player == g.tree.players[1]:
-            player_id = g.ids.PLAYER2
-        elif player == g.tree.players.chance:
-            player_id = g.ids.CHANCE
-        elif is_terminal:
-            player_id = g.ids.TERMINAL
-
-           
-            # we also have to set the node outcome
-            # first, check if the potential showdown winner had folded 
-            folder = get_folder(g, action, bets)
-
-            # if we're here on the first round of betting, someone must've folded...
-            # also, if there is a winner and they folded...
-            if (bet_round == 1) or \
-               (scenario_winner is not None and scenario_winner == folder):
-
-                # set scenario_winner to be the non-folder
-                scenario_winner = set_other_player(g, folder)
-
-            # second, need to see how much they win
-            amount = get_amount(scenario_winner, bets)
-
-            # third, we get the outcome
-            outcome = g.get_outcome(scenario_winner, amount)
-
-            # finally, we set the outcome
-            node.outcome = outcome
-
-        else:
-            raise Exception("I have no idea what player this is: {}".format(player))
-        
         # given C0-A0-B, we might want to create the new id C0-A0-B0-T = UNIQUE_ID_PARENT + 0-T
         UNIQUE_ID = "{}{}{}-{}".format(UNIQUE_ID_PARENT, action, child_index, player_id)
 
-    # this is the label we'd like to return
-    card_class = "{} has a {} and {} has a {}".format(g.tree.players[0].label, g.player1_class, g.tree.players[1].label, g.player2_class)
-    # label = "{} - {}".format(UNIQUE_ID, card_class)
-    label = "{}".format(UNIQUE_ID)
+        # this is the label we'd like to return
+        card_class = "{} has a {} and {} has a {}".format(g.tree.players[0].label, 
+                                                          g.player1_class, 
+                                                          g.tree.players[1].label, 
+                                                          g.player2_class)
+        
+        # set the label to be a combination of the node's id and card classes witnessed
+        # label = "{} - {}".format(UNIQUE_ID, card_class)
+        label = "{}".format(UNIQUE_ID)
 
     return label
 
