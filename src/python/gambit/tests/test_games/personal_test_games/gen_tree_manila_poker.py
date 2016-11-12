@@ -1769,16 +1769,18 @@ def set_node_label(g, node, bet_round, NODE_DESCRIPTION, is_terminal, action, be
     # otherwise, we need to create the label by looking at the parent node
     else:
         
-        # get child_index for node-labelling purposes
-        child_index = node.prior_action.label.split(".")[0]
+        if node != root:
 
-        # get the parent's unique identifier 
-        # C0-A0-B - Colin's Response Node given Rose Bet
-        # returns: C0-A0-B
-        UNIQUE_ID_PARENT = node.parent.label.split()[0]
+            # get child_index for node-labelling purposes
+            child_index = node.prior_action.label.split(".")[0]
 
-        # given C0-A0-B, we might want to create the new id C0-A0-B0-T = UNIQUE_ID_PARENT + 0-T
-        UNIQUE_ID = "{}{}{}-{}".format(UNIQUE_ID_PARENT, action, child_index, player_id)
+            # get the parent's unique identifier 
+            # C0-A0-B - Colin's Response Node given Rose Bet
+            # returns: C0-A0-B
+            UNIQUE_ID_PARENT = node.parent.label.split()[0]
+
+            # given C0-A0-B, we might want to create the new id C0-A0-B0-T = UNIQUE_ID_PARENT + 0-T
+            UNIQUE_ID = "{}{}{}-{}".format(UNIQUE_ID_PARENT, action, child_index, player_id)
 
         # this is the label we'd like to return
         card_class = "{} has a {} and {} has a {}".format(g.tree.players[0].label, 
