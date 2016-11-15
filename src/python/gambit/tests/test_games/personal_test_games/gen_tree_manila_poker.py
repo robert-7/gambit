@@ -24,7 +24,7 @@ class Action(object):
     actions at a specific moments. This is primarily seen in the output file.
     '''
 
-    def __init__(self, identifier):
+    def __init__(self, g, identifier):
 
         # actions and characters
         self.identifier = identifier
@@ -1065,7 +1065,71 @@ def create_game(cfg):
     return g
 
 
-def create_tree(args):
+def create_tree(g):
+
+
+    def prune_tree():
+        '''
+        We want to replace the children of the root node with the focus node.
+        '''
+
+        # we must have the first chance node 
+        # opdi = other player deal index
+        for opdi in range(len(g.tree.root.children)):
+            
+            # the node we'll replace
+            node_to_replace = g.tree.root.children[opdi]
+
+            # the node we'd like to focus on... we have to find it first
+            focus_node = node_to_replace
+
+            # at this point, we'll keep on seeing nodes with one branch until
+            # our branch of node
+            while len(focus_node.children) == 1:
+
+                # look at the next node ni the height of the tree
+                focus_node = focus_node.children[0]
+
+            # move the subtree
+            # focus_node.move_tree(node_to_replace)
+            while focus_node.parent != g.tree.root: 
+                focus_node.delete_parent()
+
+
+        # # the list containing all the indices
+        # children_indices = []
+
+        # # for every round...
+        # for rnd in range(g.get_number_of_rounds()):
+
+        #     # append the chance child index
+        #     chance_index = g.rounds[rnd].debug_child_index
+        #     if chance_index is not None:
+        #         children_indices.append(chance_index)
+
+        #     # append the actions list converted to indices
+        #     actions = tuple(g.rounds[rnd].debug_actions)
+        #     if actions not in g.atim:
+        #         raise Exception("actions ({}) is not in our mapping".format(actions))
+        #     action_indices = g.atim[actions]
+        #     children_indices += action_indices
+
+        # # get the current node
+        # node = g.tree.root
+
+        # # we need to keep going down the tree until we reach the node in which 
+        # # we're interested
+        # for child_index in children_indices:
+        #     node = node.children[child_index]
+
+        # # we need to keep replacing the node with its parent node until our node 
+        # # is the root
+        # while node.parent is not None:
+        #     node.delete_parent()
+
+        # # set the node
+        # # g.tree.root.move_tree(node)
+        # node.move_tree(g.tree.root)
 
     print("Beginning to compute payoff tree".format(g.tree.title))
 
@@ -1076,6 +1140,9 @@ def create_tree(args):
                repeat=len(g.tree.players)-2, 
                bet_round=1,
                pot=0)
+
+    # prune the tree
+    prune_tree()
 
 
 def create_cst(g, root, repeat, bet_round, pot, action=""):
@@ -1354,7 +1421,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         node = root
         player = p1
         # action_labels = ["{}. {} bets", "{}. {} checks"]
-        action_labels = [Action(g.ids.BET), Action(g.ids.CHECK)]
+        action_labels = [Action(g, g.ids.BET), Action(g, g.ids.CHECK)]
         node_label_suffix = "{}'s Decision Node".format(player.label)
         create_action_node(g, node, player, bet_round, action_labels, node_label_suffix, action, specific_actions, actions_so_far)
 
@@ -1375,7 +1442,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         node = get_child(root, 0)
         player = p2
         # action_labels = ["{}. {} raises", "{}. {} calls", "{}. {} folds"]
-        action_labels = [Action(g.ids.RAISE), Action(g.ids.CALL), Action(g.ids.FOLD)]
+        action_labels = [Action(g, g.ids.RAISE), Action(g, g.ids.CALL), Action(g, g.ids.FOLD)]
         node_label_suffix = "{}'s Response Node given {} Bets".format(player.label, node.parent.player.label)
         create_action_node(g, node, player, bet_round, action_labels, node_label_suffix, action, specific_actions, actions_so_far)
 
@@ -1387,7 +1454,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         node = get_child(root, 1)
         player = p2
         # action_labels = ["{}. {} bets", "{}. {} checks"]
-        action_labels = [Action(g.ids.BET), Action(g.ids.CHECK)]
+        action_labels = [Action(g, g.ids.BET), Action(g, g.ids.CHECK)]
         node_label_suffix = "{}'s Response Node given {} Checks".format(player.label, node.parent.player.label)
         create_action_node(g, node, player, bet_round, action_labels, node_label_suffix, action, specific_actions, actions_so_far)
 
@@ -1408,7 +1475,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         node = get_child(get_child(root,0), 0)
         player = p1
         # action_labels = ["{}. {} calls", "{}. {} folds"]
-        action_labels = [Action(g.ids.CALL), Action(g.ids.FOLD)]
+        action_labels = [Action(g, g.ids.CALL), Action(g, g.ids.FOLD)]
         node_label_suffix = "{}'s Response Node given {} Bets".format(player.label, node.parent.player.label)
         create_action_node(g, node, player, bet_round, action_labels, node_label_suffix, action, specific_actions, actions_so_far)
 
@@ -1442,7 +1509,7 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
         node = get_child(get_child(root,1), 0)
         player = p1
         # action_labels = ["{}. {} calls", "{}. {} folds"]
-        action_labels = [Action(g.ids.CALL), Action(g.ids.FOLD)]
+        action_labels = [Action(g, g.ids.CALL), Action(g, g.ids.FOLD)]
         node_label_suffix = "{}'s Response Node given {} Bets".format(player.label, node.parent.player.label)
         create_action_node(g, node, player, bet_round, action_labels, node_label_suffix, action, specific_actions, actions_so_far)
 
@@ -2078,5 +2145,6 @@ if __name__ == '__main__':
         # compute_time_of(4, "Printing Solutions", common.print_solutions, (solutions,s)) 
     except (KeyboardInterrupt):
         pass
+
     compute_time_of(5, "Printing Game", common.print_game, (g, s))
     compute_time_of(6, "Computing Expected Values", compute_expected_values, (g, s))
