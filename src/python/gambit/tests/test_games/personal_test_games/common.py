@@ -12,18 +12,20 @@ class Saver(object):
                  SAVED_GAMES_DIRECTORY, 
                  OUTPUTS_DIRECTORY,
                  OUTPUT_DIRECTORY,
-                 GAME_TREE_FILE,
+                 ORIGINAL_GAME_TREE_FILE,
+                 REDUCED_GAME_TREE_FILE,
                  EXPECTED_VALUES_FILE,
                  SOLUTIONS_FILE):
 
         # paths
-        self.PARENT_DIRECTORY      = PARENT_DIRECTORY
-        self.SAVED_GAMES_DIRECTORY = SAVED_GAMES_DIRECTORY
-        self.OUTPUTS_DIRECTORY     = OUTPUTS_DIRECTORY
-        self.OUTPUT_DIRECTORY      = OUTPUT_DIRECTORY
-        self.GAME_TREE_FILE        = GAME_TREE_FILE
-        self.EXPECTED_VALUES_FILE  = EXPECTED_VALUES_FILE
-        self.SOLUTIONS_FILE        = SOLUTIONS_FILE
+        self.PARENT_DIRECTORY        = PARENT_DIRECTORY
+        self.SAVED_GAMES_DIRECTORY   = SAVED_GAMES_DIRECTORY
+        self.OUTPUTS_DIRECTORY       = OUTPUTS_DIRECTORY
+        self.OUTPUT_DIRECTORY        = OUTPUT_DIRECTORY
+        self.ORIGINAL_GAME_TREE_FILE = ORIGINAL_GAME_TREE_FILE
+        self.REDUCED_GAME_TREE_FILE  = REDUCED_GAME_TREE_FILE
+        self.EXPECTED_VALUES_FILE    = EXPECTED_VALUES_FILE
+        self.SOLUTIONS_FILE          = SOLUTIONS_FILE
 
 
 def create_saver():
@@ -34,21 +36,23 @@ def create_saver():
     cfg.read(CONFIGURATION_FILE)
 
     # directory names
-    FILES_SECTION         = "files-paths"
-    PARENT_DIRECTORY      = cfg.get(FILES_SECTION, "PARENT_DIRECTORY")
-    SAVED_GAMES_DIRECTORY = cfg.get(FILES_SECTION, "SAVED_GAMES_DIRECTORY")
-    OUTPUTS_DIRECTORY     = cfg.get(FILES_SECTION, "OUTPUTS_DIRECTORY")
-    OUTPUT_DIRECTORY      = cfg.get(FILES_SECTION, "OUTPUT_DIRECTORY").format(strftime("%Y-%m-%d %H:%M:%S"))
-    GAME_TREE_FILE        = cfg.get(FILES_SECTION, "GAME_TREE_FILE")
-    EXPECTED_VALUES_FILE  = cfg.get(FILES_SECTION, "EXPECTED_VALUES_FILE")
-    SOLUTIONS_FILE        = cfg.get(FILES_SECTION, "SOLUTIONS_FILE")
+    FILES_SECTION           = "files-paths"
+    PARENT_DIRECTORY        = cfg.get(FILES_SECTION, "PARENT_DIRECTORY")
+    SAVED_GAMES_DIRECTORY   = cfg.get(FILES_SECTION, "SAVED_GAMES_DIRECTORY")
+    OUTPUTS_DIRECTORY       = cfg.get(FILES_SECTION, "OUTPUTS_DIRECTORY")
+    OUTPUT_DIRECTORY        = cfg.get(FILES_SECTION, "OUTPUT_DIRECTORY").format(strftime("%Y-%m-%d %H:%M:%S"))
+    ORIGINAL_GAME_TREE_FILE = cfg.get(FILES_SECTION, "ORIGINAL_GAME_TREE_FILE")
+    REDUCED_GAME_TREE_FILE  = cfg.get(FILES_SECTION, "REDUCED_GAME_TREE_FILE")
+    EXPECTED_VALUES_FILE    = cfg.get(FILES_SECTION, "EXPECTED_VALUES_FILE")
+    SOLUTIONS_FILE          = cfg.get(FILES_SECTION, "SOLUTIONS_FILE")
 
     # create the saver object
     s = Saver(PARENT_DIRECTORY=PARENT_DIRECTORY, 
               SAVED_GAMES_DIRECTORY=SAVED_GAMES_DIRECTORY, 
               OUTPUTS_DIRECTORY=OUTPUTS_DIRECTORY,
               OUTPUT_DIRECTORY=OUTPUT_DIRECTORY,
-              GAME_TREE_FILE=GAME_TREE_FILE,
+              ORIGINAL_GAME_TREE_FILE=ORIGINAL_GAME_TREE_FILE,
+              REDUCED_GAME_TREE_FILE=REDUCED_GAME_TREE_FILE,
               EXPECTED_VALUES_FILE=EXPECTED_VALUES_FILE,
               SOLUTIONS_FILE=SOLUTIONS_FILE)
 
@@ -136,7 +140,7 @@ def print_solutions(solutions, s):
     os.chdir(s.PARENT_DIRECTORY)
 
 
-def print_game(g, s):
+def print_game(g, s, file_name):
     '''
     Create a solutions directory, if necessary, and save the solutions there.
     '''
@@ -148,7 +152,6 @@ def print_game(g, s):
     safe_cd(s.OUTPUT_DIRECTORY)
 
     # create file
-    file_name = s.GAME_TREE_FILE
     target_file = open(file_name, 'w')
     
     # print solutions

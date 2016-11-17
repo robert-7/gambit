@@ -839,7 +839,7 @@ class Round(object):
         self.deck = deck
 
 
-def create_game(cfg):
+def create_game():
 
     def add_outcome_player_1_wins(g, amount):
         '''
@@ -2133,18 +2133,47 @@ def compute_expected_values(g, s):
 
     common.print_expected_values(g, s, iset)
 
+
+def create_restricted_tree(g):
+
+    # create another 
+    rg = create_game()
+
+    # creates a new game tree with undominated strategies
+    rg.tree = g.tree.support_profile().undominated().restrict()
+
+    return rg
+
+
 if __name__ == '__main__':
 
-    # create the game tree and saver objects, solve the game, print the solutions to a file, print the game
+    # create the saver object
     s = compute_time_of(0, "Creating Saver", common.create_saver, ())
     
-    g = compute_time_of(1, "Creating Game", create_game, (sys.argv,))
+    # create the game object
+    g = compute_time_of(1, "Creating Game", create_game, ())
     try:
+
+        # create the tree, 
         compute_time_of(2, "Creating Tree", create_tree, (g,))
-        # solutions = compute_time_of(3, "Solving Game", common.solve_game, (g,))
-        # compute_time_of(4, "Printing Solutions", common.print_solutions, (solutions,s)) 
+      
+        # create the restricted game
+        rg = compute_time_of(3, "Creating Restricted Tree", create_restricted_tree, (g,))
+
+        # solve the restricted game
+        solutions = compute_time_of(4, "Solving Game", common.solve_game, (rg,))
+
     except (KeyboardInterrupt):
         pass
 
-    compute_time_of(5, "Printing Game", common.print_game, (g, s))
-    compute_time_of(6, "Computing Expected Values", compute_expected_values, (g, s))
+    # print the solutions to a file
+    compute_time_of(5, "Printing Solutions", common.print_solutions, (solutions, s)) 
+
+    # print the original game
+    compute_time_of(6, "Printing Original Game", common.print_game, (g, s, s.ORIGINAL_GAME_TREE_FILE))
+
+    # print the restricted game
+    compute_time_of(7, "Printing Restricted Game", common.print_game, (rg, s, s.REDUCED_GAME_TREE_FILE))
+
+    # print the expected values (to remove)
+    # compute_time_of(7, "Computing Expected Values", compute_expected_values, (g, s))
