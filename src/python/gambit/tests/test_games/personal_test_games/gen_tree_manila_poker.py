@@ -1400,10 +1400,11 @@ def create_bst(g, root, iset_bet, deal_size, bet_round, pot):
     stop = is_last_round(g, bet_round)
 
     # we can and should calculate the winner first to avoid repetition
-    if bet_round != 1:
-        (g.winner, g.player1_class, g.player2_class) = dw.get_showdown_winner(g, bet_round)
-    else:
+    # we only calculate the winner if it's the last round
+    if bet_round != g.get_number_of_rounds():
         (g.winner, g.player1_class, g.player2_class) = (None, None, None)
+    else:
+        (g.winner, g.player1_class, g.player2_class) = dw.get_showdown_winner(g, bet_round)
 
     ###############################################
     ########## CREATE ROW 1 AND BRANCHES ##########
