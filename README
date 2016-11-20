@@ -1,19 +1,22 @@
+# Gambit
 
-This is the README file for Gambit, software tools for game theory.
+## Project Information
+This is the README file for Gambit, software tools for game theory. The latest information on Gambit can be obtained from the Gambit website at http://www.gambit-project.org
 
-The latest information on Gambit can be obtained from the
-Gambit website at
-http://www.gambit-project.org
+## Installation Instructions
+Instructions on installing Gambit can be found in the PERSONAL_INSTALL file in this directory.
 
-Instructions on installing Gambit can be found in the
-PERSONAL_INSTALL file in this directory.
-
-How to Use:
-
+## How to Use:
 You'll need to change the directory to
 ```
 src/python/gambit/tests/test_games/personal_test_games
 ```
 
-# Configurations
+### Configurations
 If you'd like to change the default configuration. Open the `config.ini` file.
+
+### Run the program.
+To run the program open the command and input:
+```
+python gen_tree_manila_poker.py
+```
