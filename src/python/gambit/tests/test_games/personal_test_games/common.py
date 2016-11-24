@@ -3,58 +3,40 @@ from gambit import nash
 from utils import compute_time_of
 from time import time, strftime
 from ConfigParser import ConfigParser
-
+from distutils    import util
 
 class Saver(object):
 
-    def __init__(self,
-                 PARENT_DIRECTORY, 
-                 SAVED_GAMES_DIRECTORY, 
-                 OUTPUTS_DIRECTORY,
-                 OUTPUT_DIRECTORY,
-                 ORIGINAL_GAME_TREE_FILE,
-                 REDUCED_GAME_TREE_FILE,
-                 EXPECTED_VALUES_FILE,
-                 SOLUTIONS_FILE):
+    def __init__(self):
 
-        # paths
-        self.PARENT_DIRECTORY        = PARENT_DIRECTORY
-        self.SAVED_GAMES_DIRECTORY   = SAVED_GAMES_DIRECTORY
-        self.OUTPUTS_DIRECTORY       = OUTPUTS_DIRECTORY
-        self.OUTPUT_DIRECTORY        = OUTPUT_DIRECTORY
-        self.ORIGINAL_GAME_TREE_FILE = ORIGINAL_GAME_TREE_FILE
-        self.REDUCED_GAME_TREE_FILE  = REDUCED_GAME_TREE_FILE
-        self.EXPECTED_VALUES_FILE    = EXPECTED_VALUES_FILE
-        self.SOLUTIONS_FILE          = SOLUTIONS_FILE
+        # read the configuration file
+        CONFIGURATION_FILE = "config.ini"
+        cfg = ConfigParser()
+        cfg.read(CONFIGURATION_FILE)
+
+        # directory names
+        FILES_SECTION                 = "files-paths"
+        self.PARENT_DIRECTORY              = cfg.get(FILES_SECTION, "PARENT_DIRECTORY")
+        self.SAVED_GAMES_DIRECTORY         = cfg.get(FILES_SECTION, "SAVED_GAMES_DIRECTORY")
+        self.OUTPUTS_DIRECTORY             = cfg.get(FILES_SECTION, "OUTPUTS_DIRECTORY")
+        self.OUTPUT_DIRECTORY              = cfg.get(FILES_SECTION, "OUTPUT_DIRECTORY").format(strftime("%Y-%m-%d %H:%M:%S"))
+        self.EXPECTED_VALUES_FILE          = cfg.get(FILES_SECTION, "EXPECTED_VALUES_FILE")
+        self.PRINT_ORIGINAL_GAME_TREE      = util.strtobool(cfg.get(FILES_SECTION, "PRINT_ORIGINAL_GAME_TREE"))
+        self.ORIGINAL_GAME_TREE_FILE       = cfg.get(FILES_SECTION, "ORIGINAL_GAME_TREE_FILE")
+        self.PRINT_PRUNED_GAME_TREE        = util.strtobool(cfg.get(FILES_SECTION, "PRINT_PRUNED_GAME_TREE"))
+        self.PRUNED_GAME_TREE_FILE         = cfg.get(FILES_SECTION, "PRUNED_GAME_TREE_FILE")
+        self.PRINT_UNDOMINATED_GAME_MATRIX = util.strtobool(cfg.get(FILES_SECTION, "PRINT_PRUNED_GAME_TREE"))
+        self.UNDOMINATED_GAME_MATRIX_FILE  = cfg.get(FILES_SECTION, "PRUNED_GAME_TREE_FILE")
+        self.PRINT_NFG_FORMAT              = util.strtobool(cfg.get(FILES_SECTION, "PRINT_NFG_FORMAT"))
+        self.PRINT_GTE_FORMAT              = util.strtobool(cfg.get(FILES_SECTION, "PRINT_GTE_FORMAT"))
+        self.SOLVE_GAME                    = util.strtobool(cfg.get(FILES_SECTION, "SOLVE_GAME"))
+        self.SOLUTIONS_FILE                = cfg.get(FILES_SECTION, "SOLUTIONS_FILE")
 
 
 def create_saver():
 
-    # read the configuration file
-    CONFIGURATION_FILE = "config.ini"
-    cfg = ConfigParser()
-    cfg.read(CONFIGURATION_FILE)
-
-    # directory names
-    FILES_SECTION           = "files-paths"
-    PARENT_DIRECTORY        = cfg.get(FILES_SECTION, "PARENT_DIRECTORY")
-    SAVED_GAMES_DIRECTORY   = cfg.get(FILES_SECTION, "SAVED_GAMES_DIRECTORY")
-    OUTPUTS_DIRECTORY       = cfg.get(FILES_SECTION, "OUTPUTS_DIRECTORY")
-    OUTPUT_DIRECTORY        = cfg.get(FILES_SECTION, "OUTPUT_DIRECTORY").format(strftime("%Y-%m-%d %H:%M:%S"))
-    ORIGINAL_GAME_TREE_FILE = cfg.get(FILES_SECTION, "ORIGINAL_GAME_TREE_FILE")
-    REDUCED_GAME_TREE_FILE  = cfg.get(FILES_SECTION, "REDUCED_GAME_TREE_FILE")
-    EXPECTED_VALUES_FILE    = cfg.get(FILES_SECTION, "EXPECTED_VALUES_FILE")
-    SOLUTIONS_FILE          = cfg.get(FILES_SECTION, "SOLUTIONS_FILE")
-
     # create the saver object
-    s = Saver(PARENT_DIRECTORY=PARENT_DIRECTORY, 
-              SAVED_GAMES_DIRECTORY=SAVED_GAMES_DIRECTORY, 
-              OUTPUTS_DIRECTORY=OUTPUTS_DIRECTORY,
-              OUTPUT_DIRECTORY=OUTPUT_DIRECTORY,
-              ORIGINAL_GAME_TREE_FILE=ORIGINAL_GAME_TREE_FILE,
-              REDUCED_GAME_TREE_FILE=REDUCED_GAME_TREE_FILE,
-              EXPECTED_VALUES_FILE=EXPECTED_VALUES_FILE,
-              SOLUTIONS_FILE=SOLUTIONS_FILE)
+    s = Saver()
 
     return s
 
@@ -88,7 +70,7 @@ def print_expected_values(g, s, iset):
     # http://gambit.sourceforge.net/gambit15/pyapi.html
     #                               #mixed-strategy-and-behavior-profiles
     # This differs from a "mixed strategy profile" in that the former
-    # applies to actions whereas the latter applies to strategies.
+    # applies to actions whereas the lineatter applies to strategies.
     p = g.tree.mixed_behavior_profile(rational=True)
 
     # we want to write this to a file
@@ -140,10 +122,28 @@ def print_solutions(solutions, s):
     os.chdir(s.PARENT_DIRECTORY)
 
 
-def print_game(g, s, file_name):
+def print_game(g, s, base_name):
     '''
     Create a solutions directory, if necessary, and save the solutions there.
     '''
+
+    def _print_game(path_template, extension, output_format):
+        '''
+        Print the game.
+        '''
+
+        # base name with extension
+        path = path_template.format(extension)
+
+        # create file
+        target_file = open(path, 'w')
+        
+        # print solutions
+        target_file.write("{}".format(g.tree.write(output_format)))
+        
+        # close the target file
+        target_file.close()
+
 
     # create outputs directory, if necessary, and cd in
     safe_cd(s.OUTPUTS_DIRECTORY)
@@ -151,14 +151,15 @@ def print_game(g, s, file_name):
     # create output directory, if necessary, and cd in
     safe_cd(s.OUTPUT_DIRECTORY)
 
-    # create file
-    target_file = open(file_name, 'w')
+    path_template = base_name + ".{}"
+
+    # print game in .nfg format
+    if s.PRINT_NFG_FORMAT:
+        _print_game(path_template=path_template, extension="nfg", output_format="native")
     
-    # print solutions
-    target_file.write("{}".format(g.tree.write()))
-    
-    # close the target file
-    target_file.close()
+    # print game in .gte format
+    if s.PRINT_GTE_FORMAT:
+        _print_game(path_template=path_template, extension="gte", output_format="gte")
 
     # go back out
     os.chdir(s.PARENT_DIRECTORY)

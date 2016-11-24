@@ -2146,35 +2146,53 @@ def create_restricted_tree(g):
     return rg
 
 
+def prune_strictly_dominated_actions(g):
+    '''
+    Remove actions taht are strictly domintated here.
+    '''
+    
+    pass
+
+
 if __name__ == '__main__':
 
     # create the saver object
     s = compute_time_of(0, "Creating Saver", common.create_saver, ())
     
     # create the game object
-    g = compute_time_of(1, "Creating Game", create_game, ())
+    original_game = compute_time_of(1, "Creating Game", create_game, ())
+
+    # game to solve
+    game_to_solve = original_game
+
     try:
 
-        # create the tree, 
-        compute_time_of(2, "Creating Tree", create_tree, (g,))
-      
-        # create the restricted game
-        rg = compute_time_of(3, "Creating Restricted Tree", create_restricted_tree, (g,))
+        # create the tree
+        compute_time_of(2, "Creating Game Tree", create_tree, (original_game,))
 
-        # solve the restricted game
-        solutions = compute_time_of(4, "Solving Game", common.solve_game, (rg,))
+        # print the original game
+        if s.PRINT_ORIGINAL_GAME_TREE:
+            compute_time_of(3, "Printing Original Game Tree", common.print_game, (original_game, s, s.ORIGINAL_GAME_TREE_FILE))
+      
+        # prune strictly dominated actions and print the game
+        if s.PRINT_PRUNED_GAME_TREE:
+            pruned_game = compute_time_of(4, "Pruning Game Tree", prune_strictly_dominated_actions, (original_game,))
+            game_to_solve = pruned_game
+            compute_time_of(5, "Printing Pruned Game Tree", common.print_game, (pruned_game, s, s.PRUNED_GAME_TREE_FILE))
+
+        # create and print the restricted game
+        if s.PRINT_UNDOMINATED_GAME_MATRIX:
+            restricted_game = compute_time_of(6, "Creating Restricted Matrix Game", create_restricted_tree, (pruned_game,))
+            game_to_solve = restricted_game
+            compute_time_of(7, "Printing Restricted Game", common.print_game, (restricted_game, s, s.REDUCED_GAME_TREE_FILE))
+            
+        # solve the most reduced game and print the solutions to a file
+        if s.SOLVE_GAME:
+            solutions = compute_time_of(8, "Solving Game", common.solve_game, (game_to_solve,))
+            compute_time_of(9, "Printing Solutions", common.print_solutions, (solutions, s)) 
 
     except (KeyboardInterrupt):
         pass
 
-    # print the solutions to a file
-    compute_time_of(5, "Printing Solutions", common.print_solutions, (solutions, s)) 
-
-    # print the original game
-    compute_time_of(6, "Printing Original Game", common.print_game, (g, s, s.ORIGINAL_GAME_TREE_FILE))
-
-    # print the restricted game
-    compute_time_of(7, "Printing Restricted Game", common.print_game, (rg, s, s.REDUCED_GAME_TREE_FILE))
-
     # print the expected values (to remove)
-    # compute_time_of(7, "Computing Expected Values", compute_expected_values, (g, s))
+    # compute_time_of(7, "Computing Expected Values", compute_expected_values, (original_game, s))
