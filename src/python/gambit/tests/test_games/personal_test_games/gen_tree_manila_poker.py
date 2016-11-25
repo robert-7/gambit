@@ -2119,7 +2119,7 @@ def create_restricted_tree(g):
     return rg
 
 
-def prune_strictly_dominated_actions(g):
+def prune_strictly_dominated_actions(g, s):
     '''
     Remove actions that are strictly dominated here.
     '''
@@ -2139,7 +2139,10 @@ def prune_strictly_dominated_actions(g):
     # the profile
     profile = pruned_game.tree.mixed_behavior_profile(rational=True)
 
-    # for each level of infosets
+    # n'th step index
+    if s.PRINT_PRUNED_GAME_TREE_AFTER_EVERY_PRUNE:
+        sub_process_index = 1
+    
     for key in keys:
 
         # get the infoset
@@ -2160,6 +2163,9 @@ def prune_strictly_dominated_actions(g):
         # get the maximum expected payoff
         max_expected_payoff = max(expected_payoffs)
 
+        # indicator to keep track of an action getting deleted
+        action_deleted = False
+
         # for each item in the list...
         for actions_index in range(len(iset.actions)-1, -1, -1):
 
@@ -2169,6 +2175,19 @@ def prune_strictly_dominated_actions(g):
                 # delete the action from the game
                 action = iset.actions[actions_index]
                 action.delete()
+
+                # update indicator
+                action_deleted = True
+
+        # print the tree
+        if s.PRINT_PRUNED_GAME_TREE_AFTER_EVERY_PRUNE and action_deleted:
+            sub_process_string = "5.{}".format(sub_process_index)
+            new_file_name = "{}-Part-{}".format(s.PRUNED_GAME_TREE_FILE, format(sub_process_index, '02'))   
+            compute_time_of(sub_process_string, "Printing Pruned Game Tree", common.print_game, (pruned_game, s, new_file_name))
+            sub_process_index += 1
+
+        # reset indicator
+        action_deleted = False
 
     return pruned_game
 
@@ -2199,7 +2218,7 @@ if __name__ == '__main__':
       
         # prune strictly dominated actions and print the game
         if s.PRINT_PRUNED_GAME_TREE:
-            pruned_game = compute_time_of(4, "Pruning Game Tree", prune_strictly_dominated_actions, (original_game,))
+            pruned_game = compute_time_of(4, "Pruning Game Tree", prune_strictly_dominated_actions, (original_game, s))
             game_to_solve = pruned_game
             compute_time_of(5, "Printing Pruned Game Tree", common.print_game, (pruned_game, s, s.PRUNED_GAME_TREE_FILE))
 
