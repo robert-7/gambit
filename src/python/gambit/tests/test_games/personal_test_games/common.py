@@ -15,21 +15,28 @@ class Saver(object):
         cfg.read(CONFIGURATION_FILE)
 
         # directory names
-        FILES_SECTION                 = "files-paths"
+        FILES_SECTION                      = "files-paths"
         self.PARENT_DIRECTORY              = cfg.get(FILES_SECTION, "PARENT_DIRECTORY")
         self.SAVED_GAMES_DIRECTORY         = cfg.get(FILES_SECTION, "SAVED_GAMES_DIRECTORY")
         self.OUTPUTS_DIRECTORY             = cfg.get(FILES_SECTION, "OUTPUTS_DIRECTORY")
-        self.OUTPUT_DIRECTORY              = cfg.get(FILES_SECTION, "OUTPUT_DIRECTORY").format(strftime("%Y-%m-%d %H:%M:%S"))
+        OUTPUT_DIRECTORY                   = cfg.get(FILES_SECTION, "OUTPUT_DIRECTORY")
+        self.OUTPUT_DIRECTORY              = OUTPUT_DIRECTORY.format(strftime("%Y-%m-%d %H:%M:%S"))
         self.EXPECTED_VALUES_FILE          = cfg.get(FILES_SECTION, "EXPECTED_VALUES_FILE")
-        self.PRINT_ORIGINAL_GAME_TREE      = util.strtobool(cfg.get(FILES_SECTION, "PRINT_ORIGINAL_GAME_TREE"))
+        PRINT_ORIGINAL_GAME_TREE           = cfg.get(FILES_SECTION, "PRINT_ORIGINAL_GAME_TREE")
+        self.PRINT_ORIGINAL_GAME_TREE      = util.strtobool(PRINT_ORIGINAL_GAME_TREE)
         self.ORIGINAL_GAME_TREE_FILE       = cfg.get(FILES_SECTION, "ORIGINAL_GAME_TREE_FILE")
-        self.PRINT_PRUNED_GAME_TREE        = util.strtobool(cfg.get(FILES_SECTION, "PRINT_PRUNED_GAME_TREE"))
+        PRINT_PRUNED_GAME_TREE             = cfg.get(FILES_SECTION, "PRINT_PRUNED_GAME_TREE")
+        self.PRINT_PRUNED_GAME_TREE        = util.strtobool(PRINT_PRUNED_GAME_TREE)
         self.PRUNED_GAME_TREE_FILE         = cfg.get(FILES_SECTION, "PRUNED_GAME_TREE_FILE")
-        self.PRINT_UNDOMINATED_GAME_MATRIX = util.strtobool(cfg.get(FILES_SECTION, "PRINT_PRUNED_GAME_TREE"))
+        PRINT_UNDOMINATED_GAME_MATRIX      = cfg.get(FILES_SECTION, "PRINT_UNDOMINATED_GAME_MATRIX")
+        self.PRINT_UNDOMINATED_GAME_MATRIX = util.strtobool(PRINT_UNDOMINATED_GAME_MATRIX)
         self.UNDOMINATED_GAME_MATRIX_FILE  = cfg.get(FILES_SECTION, "PRUNED_GAME_TREE_FILE")
-        self.PRINT_NFG_FORMAT              = util.strtobool(cfg.get(FILES_SECTION, "PRINT_NFG_FORMAT"))
-        self.PRINT_GTE_FORMAT              = util.strtobool(cfg.get(FILES_SECTION, "PRINT_GTE_FORMAT"))
-        self.SOLVE_GAME                    = util.strtobool(cfg.get(FILES_SECTION, "SOLVE_GAME"))
+        PRINT_NFG_FORMAT                   = cfg.get(FILES_SECTION, "PRINT_NFG_FORMAT")
+        self.PRINT_NFG_FORMAT              = util.strtobool(PRINT_NFG_FORMAT)
+        PRINT_GTE_FORMAT                   = cfg.get(FILES_SECTION, "PRINT_GTE_FORMAT")
+        self.PRINT_GTE_FORMAT              = util.strtobool(PRINT_GTE_FORMAT)
+        SOLVE_GAME                         = cfg.get(FILES_SECTION, "SOLVE_GAME")
+        self.SOLVE_GAME                    = util.strtobool(SOLVE_GAME)
         self.SOLUTIONS_FILE                = cfg.get(FILES_SECTION, "SOLUTIONS_FILE")
 
 

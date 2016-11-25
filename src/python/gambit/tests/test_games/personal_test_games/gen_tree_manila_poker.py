@@ -6,6 +6,7 @@ from fractions    import Fraction
 from numbers      import Rational
 from ConfigParser import ConfigParser
 from ast          import literal_eval
+from copy         import deepcopy
 import itertools
 
 # libraries from GitHub
@@ -973,10 +974,6 @@ def create_game():
         print(USAGE_OUTPUT)
         sys.exit(2)
 
-    # if we want to debug our code, this is where we do it
-    if DEBUG:
-        import pudb; pu.db
-
     # if Nones were specified for debug cards, transform them to empty lists
     if not SPECIFIC_HOLE:
         error_msg = "SPECIFIC_HOLE cannot be empty. Given SPECIFIC_HOLE ({})"
@@ -1087,7 +1084,7 @@ def create_tree(g):
             # our branch of node
             while len(focus_node.children) == 1:
 
-                # look at the next node ni the height of the tree
+                # look at the next node in the height of the tree
                 focus_node = focus_node.children[0]
 
             # move the subtree
@@ -1096,40 +1093,16 @@ def create_tree(g):
                 focus_node.delete_parent()
 
 
-        # # the list containing all the indices
-        # children_indices = []
+        # we should update our g.infoset_mapping dictionary
+        actions = g.rounds[0].debug_actions + g.rounds[1].debug_actions + g.rounds[2].debug_actions + g.rounds[3].debug_actions
+        actions = "".join(actions)
 
-        # # for every round...
-        # for rnd in range(g.get_number_of_rounds()):
+        # get the keys
+        keys = g.infoset_mapping.keys()
+        for key in keys:
+            if len(key) < len(actions):
+                del g.infoset_mapping[key]
 
-        #     # append the chance child index
-        #     chance_index = g.rounds[rnd].debug_child_index
-        #     if chance_index is not None:
-        #         children_indices.append(chance_index)
-
-        #     # append the actions list converted to indices
-        #     actions = tuple(g.rounds[rnd].debug_actions)
-        #     if actions not in g.atim:
-        #         raise Exception("actions ({}) is not in our mapping".format(actions))
-        #     action_indices = g.atim[actions]
-        #     children_indices += action_indices
-
-        # # get the current node
-        # node = g.tree.root
-
-        # # we need to keep going down the tree until we reach the node in which 
-        # # we're interested
-        # for child_index in children_indices:
-        #     node = node.children[child_index]
-
-        # # we need to keep replacing the node with its parent node until our node 
-        # # is the root
-        # while node.parent is not None:
-        #     node.delete_parent()
-
-        # # set the node
-        # # g.tree.root.move_tree(node)
-        # node.move_tree(g.tree.root)
 
     print("Beginning to compute payoff tree".format(g.tree.title))
 
@@ -2148,19 +2121,69 @@ def create_restricted_tree(g):
 
 def prune_strictly_dominated_actions(g):
     '''
-    Remove actions taht are strictly domintated here.
+    Remove actions that are strictly dominated here.
     '''
+
+    # we want to return a copy of the game 
+    # pruned_game = create_game()
+    # pruned_game.tree = deepcopy(g.tree)
+
+    pruned_game = g
+
+    # a list of lists of infosets in reverse-level order
+    # get the keys
+    keys = pruned_game.infoset_mapping.keys()
+    keys.sort(key=len)
+    keys.reverse()
+
+    # the profile
+    profile = pruned_game.tree.mixed_behavior_profile(rational=True)
+
+    # for each level of infosets
+    for key in keys:
+
+        # get the infoset
+        iset = pruned_game.infoset_mapping[key]
+        
+        # we want a list to store expected payoffs of each action
+        expected_payoffs = []
     
-    pass
+        # for each action in an infoset
+        for action in iset.actions:
+
+            # get the expected payoff of performing this action
+            expected_payoff = profile.payoff(action)
+            
+            # store the payoff
+            expected_payoffs.append(expected_payoff)
+            
+        # get the maximum expected payoff
+        max_expected_payoff = max(expected_payoffs)
+
+        # for each item in the list...
+        for actions_index in range(len(iset.actions)-1, -1, -1):
+
+            # if its expected value 
+            if expected_payoffs[actions_index] < max_expected_payoff:
+                
+                # delete the action from the game
+                action = iset.actions[actions_index]
+                action.delete()
+
+    return pruned_game
 
 
 if __name__ == '__main__':
 
     # create the saver object
     s = compute_time_of(0, "Creating Saver", common.create_saver, ())
-    
+
     # create the game object
     original_game = compute_time_of(1, "Creating Game", create_game, ())
+
+    # if we want to debug our code, this is where we do it
+    if original_game.DEBUG:
+        import pudb; pu.db
 
     # game to solve
     game_to_solve = original_game
