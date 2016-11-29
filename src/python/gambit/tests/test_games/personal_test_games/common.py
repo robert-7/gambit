@@ -4,10 +4,46 @@ from utils import compute_time_of
 from time import time, strftime
 from ConfigParser import ConfigParser
 from distutils    import util
+from ast          import literal_eval
 
 class Saver(object):
 
     def __init__(self):
+
+        def get_folder_name(cfg):
+            '''
+            Return the folder name.
+            '''
+
+            FILES_SECTION     = "files-paths"
+            TESTING_SECTION   = "testing"
+            OUTPUT_DIRECTORY  = cfg.get(FILES_SECTION, "OUTPUT_DIRECTORY")
+            time              = strftime("%Y-%m-%d_%H-%M-%S")
+
+            # if we need the scenario details...
+            INCLUDE_SCENARIO_DETAILS = util.strtobool(cfg.get(FILES_SECTION, "INCLUDE_SCENARIO_DETAILS"))
+            if INCLUDE_SCENARIO_DETAILS: 
+
+            # get the cards and actions specified
+                SPECIFIC_HOLE     = "HOLE({})".format(",".join(literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_HOLE"))))
+                SPECIFIC_ACTIONS1 = "_({})__".format("".join(literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_ACTIONS1"))))
+                SPECIFIC_FLOP     = "FLOP({})".format(",".join(literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_FLOP"))))
+                SPECIFIC_ACTIONS2 = "_({})__".format("".join(literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_ACTIONS2"))))
+                SPECIFIC_TURN     = "TURN({})".format("".join(literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_TURN"))))
+                SPECIFIC_ACTIONS3 = "_({})__".format("".join(literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_ACTIONS3"))))
+                SPECIFIC_RIVER    = "RIVER({})".format("".join(literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_RIVER"))))
+                SPECIFIC_ACTIONS4 = "_({})__".format("".join(literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_ACTIONS4"))))
+
+                # join the strings
+                cards_actions = "{}{}{}{}{}{}{}{}".format(SPECIFIC_HOLE, SPECIFIC_ACTIONS1, SPECIFIC_FLOP, SPECIFIC_ACTIONS2, SPECIFIC_TURN, SPECIFIC_ACTIONS3, SPECIFIC_RIVER, SPECIFIC_ACTIONS4)
+                suffix = "{}-{}".format(cards_actions, time)
+
+            else:
+                suffix = "{}".format(time)
+
+            OUTPUT_DIRECTORY = OUTPUT_DIRECTORY.format(suffix)
+
+            return OUTPUT_DIRECTORY
 
         # read the configuration file
         CONFIGURATION_FILE = "config.ini"
@@ -19,8 +55,7 @@ class Saver(object):
         self.PARENT_DIRECTORY                         = cfg.get(FILES_SECTION, "PARENT_DIRECTORY")
         self.SAVED_GAMES_DIRECTORY                    = cfg.get(FILES_SECTION, "SAVED_GAMES_DIRECTORY")
         self.OUTPUTS_DIRECTORY                        = cfg.get(FILES_SECTION, "OUTPUTS_DIRECTORY")
-        OUTPUT_DIRECTORY                              = cfg.get(FILES_SECTION, "OUTPUT_DIRECTORY")
-        self.OUTPUT_DIRECTORY                         = OUTPUT_DIRECTORY.format(strftime("%Y-%m-%d %H:%M:%S"))
+        self.OUTPUT_DIRECTORY                         = get_folder_name(cfg)
         self.EXPECTED_VALUES_FILE                     = cfg.get(FILES_SECTION, "EXPECTED_VALUES_FILE")
         PRINT_ORIGINAL_GAME_TREE                      = cfg.get(FILES_SECTION, "PRINT_ORIGINAL_GAME_TREE")
         self.PRINT_ORIGINAL_GAME_TREE                 = util.strtobool(PRINT_ORIGINAL_GAME_TREE)
@@ -168,7 +203,7 @@ def print_game(g, s, base_name):
     
     # print game in .gte format
     if s.PRINT_GTE_FORMAT:
-        _print_game(path_template=path_template, extension="gte", output_format="gte")
+        _print_game(path_template=path_template, extension="xml", output_format="gte")
 
     # go back out
     os.chdir(s.PARENT_DIRECTORY)
