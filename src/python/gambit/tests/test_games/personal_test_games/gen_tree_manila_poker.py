@@ -1674,8 +1674,9 @@ def create_action_node(g, node, player, bet_round, subtree_actions, node_label_s
 
     if is_focus_player and key_in_infoset_mapping:
 
-        # then we jsut need to add this node to its corresponding infoset
-        iset = g.infoset_mapping[key]
+        # then we just need to add this node to its corresponding infoset
+        # there is always only one infoset
+        iset = g.infoset_mapping[key][0]
         # index = g.infoset_mapping[key]
         # iset = player.infosets[index]
         node.append_move(iset)
@@ -1699,8 +1700,13 @@ def create_action_node(g, node, player, bet_round, subtree_actions, node_label_s
         index = len(player.infosets)
         iset = node.append_move(player, n_actions)
         iset.label = "Bet Round ({}) - {}".format(bet_round, key)
-        # g.infoset_mapping[key] = index
-        g.infoset_mapping[key] = iset
+
+        # we need to add this infoset to to g.infoset_mapping...
+        if key_in_infoset_mapping:
+            # g.infoset_mapping[key] = index
+            g.infoset_mapping[key].append(iset)
+        else:
+            g.infoset_mapping[key] = [iset]
 
         #######################################################################
         ######################### LABEL EACH ACTION ###########################
@@ -2056,56 +2062,57 @@ def min_val_rec(x, MAX, length):
     return min_value
 
 
-def compute_expected_values(g, s):
+# def compute_expected_values(g, s):
 
-    ###########################################################################
-    ################# Step 1: Get Infoset Mapping Key ################## 
-    ###########################################################################
+#     ###########################################################################
+#     ################# Step 1: Get Infoset Mapping Key ################## 
+#     ###########################################################################
 
-    # We first need to get all the actions that were specified in the
-    # configuration file
+#     # We first need to get all the actions that were specified in the
+#     # configuration file
 
-    # the key we'll use in the g.infoset_mapping
-    key = ""
+#     # the key we'll use in the g.infoset_mapping
+#     key = ""
 
-    # get the rounds
-    rounds = g.rounds
+#     # get the rounds
+#     rounds = g.rounds
 
-    # for each round
-    for _round in rounds:
+#     # for each round
+#     for _round in rounds:
 
-        # get the actions of that round
-        actions = _round.debug_actions
+#         # get the actions of that round
+#         actions = _round.debug_actions
 
-        # for each action in those actions
-        for action in actions:
+#         # for each action in those actions
+#         for action in actions:
 
-            # add it to the key
-            key += action
+#             # add it to the key
+#             key += action
 
-    # by this point we should have our key
+#     # by this point we should have our key
     
-    ###########################################################################
-    ################# Step 2: Get Infoset  ################## 
-    ###########################################################################
+#     ###########################################################################
+#     ################# Step 2: Get Infoset  ################## 
+#     ###########################################################################
 
-    # if the key is not in the info_set for some reason...
-    if key not in g.infoset_mapping:
+#     # if the key is not in the info_set for some reason...
+#     if key not in g.infoset_mapping:
 
-        # that's a problem
-        key_missing_template = "Oops, your key ({}) is not in the infoset."
-        key_missing = key_missing_template.format(key)
-        valid_keys_template = '''Valid infoset key-value pairs are:\n{}
-        Ensure your key corresponds to an action node owned by the player 
-        specified in the configuration file. Also, ensure it correspond to a 
-        valid node.'''
-        valid_keys = valid_keys_template.format(g.infoset_mapping.keys())
-        raise Exception("{} {}".format(key_missing, valid_keys))
+#         # that's a problem
+#         key_missing_template = "Oops, your key ({}) is not in the infoset."
+#         key_missing = key_missing_template.format(key)
+#         valid_keys_template = '''Valid infoset key-value pairs are:\n{}
+#         Ensure your key corresponds to an action node owned by the player 
+#         specified in the configuration file. Also, ensure it correspond to a 
+#         valid node.'''
+#         valid_keys = valid_keys_template.format(g.infoset_mapping.keys())
+#         raise Exception("{} {}".format(key_missing, valid_keys))
 
-    # get the infoset stored in g.infoset_mapping
-    iset = g.infoset_mapping[key]
+#     # get the infoset stored in g.infoset_mapping
+#     # THIS IS WRONG! NO NEED TO UPDATE IF THIS IS USELESS
+#     iset = g.infoset_mapping[key]
 
-    common.print_expected_values(g, s, iset)
+#     common.print_expected_values(g, s, iset)
 
 
 def create_restricted_tree(g):
@@ -2145,49 +2152,52 @@ def prune_strictly_dominated_actions(g, s):
     
     for key in keys:
 
-        # get the infoset
-        iset = pruned_game.infoset_mapping[key]
+        # for each level of infosets
+        isets = pruned_game.infoset_mapping[key]
+
+        # for each infoset
+        for iset in isets:
         
-        # we want a list to store expected payoffs of each action
-        expected_payoffs = []
-    
-        # for each action in an infoset
-        for action in iset.actions:
+            # we want a list to store expected payoffs of each action
+            expected_payoffs = []
+        
+            # for each action in an infoset
+            for action in iset.actions:
 
-            # get the expected payoff of performing this action
-            expected_payoff = profile.payoff(action)
-            
-            # store the payoff
-            expected_payoffs.append(expected_payoff)
-            
-        # get the maximum expected payoff
-        max_expected_payoff = max(expected_payoffs)
-
-        # indicator to keep track of an action getting deleted
-        action_deleted = False
-
-        # for each item in the list...
-        for actions_index in range(len(iset.actions)-1, -1, -1):
-
-            # if its expected value 
-            if expected_payoffs[actions_index] < max_expected_payoff:
+                # get the expected payoff of performing this action
+                expected_payoff = profile.payoff(action)
                 
-                # delete the action from the game
-                action = iset.actions[actions_index]
-                action.delete()
+                # store the payoff
+                expected_payoffs.append(expected_payoff)
+                
+            # get the maximum expected payoff
+            max_expected_payoff = max(expected_payoffs)
 
-                # update indicator
-                action_deleted = True
+            # indicator to keep track of an action getting deleted
+            action_deleted = False
 
-        # print the tree
-        if s.PRINT_PRUNED_GAME_TREE_AFTER_EVERY_PRUNE and action_deleted:
-            sub_process_string = "5.{}".format(sub_process_index)
-            new_file_name = "{}-Part-{}".format(s.PRUNED_GAME_TREE_FILE, format(sub_process_index, '02'))   
-            compute_time_of(sub_process_string, "Printing Pruned Game Tree", common.print_game, (pruned_game, s, new_file_name))
-            sub_process_index += 1
+            # for each item in the list...
+            for actions_index in range(len(iset.actions)-1, -1, -1):
 
-        # reset indicator
-        action_deleted = False
+                # if its expected value 
+                if expected_payoffs[actions_index] < max_expected_payoff:
+                    
+                    # delete the action from the game
+                    action = iset.actions[actions_index]
+                    action.delete()
+
+                    # update indicator
+                    action_deleted = True
+
+            # print the tree if necessary
+            if s.PRINT_PRUNED_GAME_TREE_AFTER_EVERY_PRUNE and action_deleted:
+                sub_process_string = "5.{}".format(sub_process_index)
+                new_file_name = "{}-Part-{}".format(s.PRUNED_GAME_TREE_FILE, format(sub_process_index, '02'))   
+                compute_time_of(sub_process_string, "Printing Pruned Game Tree", common.print_game, (pruned_game, s, new_file_name))
+                sub_process_index += 1
+
+            # reset indicator
+            action_deleted = False
 
     return pruned_game
 
