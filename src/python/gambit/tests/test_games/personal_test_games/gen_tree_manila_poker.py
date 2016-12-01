@@ -2150,14 +2150,21 @@ def prune_strictly_dominated_actions(g, s):
     if s.PRINT_PRUNED_GAME_TREE_AFTER_EVERY_PRUNE:
         sub_process_index = 1
     
-    for key in keys:
+    for key_index in range(len(keys)):
 
         # for each level of infosets
+        key = keys[key_index]
         isets = pruned_game.infoset_mapping[key]
 
         # for each infoset
-        for iset in isets:
+        for iset_index in range(len(isets)):
         
+            # get the infoset
+            iset = isets[iset_index]
+
+            # are we focusing on player 1
+            is_player1 = (iset.player == pruned_game.tree.players[0])
+
             # we want a list to store expected payoffs of each action
             expected_payoffs = []
         
@@ -2170,8 +2177,17 @@ def prune_strictly_dominated_actions(g, s):
                 # store the payoff
                 expected_payoffs.append(expected_payoff)
                 
-            # get the maximum expected payoff
-            max_expected_payoff = max(expected_payoffs)
+            # are we focusing on player 1
+            is_player1 = (iset.player == pruned_game.tree.players[0])
+
+            # we need to get the optimal payoff, which is subjective based on the player
+            if is_player1:
+                # get the maximum expected payoff
+                optimal_expected_payoff = max(expected_payoffs)
+
+            else:
+                # get the minimum expected payoff
+                optimal_expected_payoff = min(expected_payoffs)
 
             # indicator to keep track of an action getting deleted
             action_deleted = False
@@ -2179,8 +2195,9 @@ def prune_strictly_dominated_actions(g, s):
             # for each item in the list...
             for actions_index in range(len(iset.actions)-1, -1, -1):
 
-                # if its expected value 
-                if expected_payoffs[actions_index] < max_expected_payoff:
+                # if its expected value is worse than the best optimal payoff for that player
+                if (is_player1 and expected_payoffs[actions_index] < optimal_expected_payoff) \
+                or (not is_player1 and expected_payoffs[actions_index] > optimal_expected_payoff):
                     
                     # delete the action from the game
                     action = iset.actions[actions_index]
