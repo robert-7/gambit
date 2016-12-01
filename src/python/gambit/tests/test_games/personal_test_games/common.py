@@ -31,7 +31,7 @@ class Saver(object):
                 HIGHEST_CARD      = int(cfg.get(PERSONAL_SECTION,"HIGHEST_CARD"))
                 NUMBER_OF_SUITS   = int(cfg.get(PERSONAL_SECTION,"NUMBER_OF_SUITS"))
                 num_cards         = (HIGHEST_CARD - LOWEST_CARD + 1) * NUMBER_OF_SUITS
-                num_cards_string  = "{}_cards".format(str(num_cards))
+                cards             = "{}_cards".format(str(num_cards))
 
                 # get the cards and actions specified
                 SPECIFIC_HOLE     = "HOLE({})".format(",".join(literal_eval(cfg.get(TESTING_SECTION,"SPECIFIC_HOLE"))))
@@ -45,7 +45,7 @@ class Saver(object):
 
                 # join the strings
                 cards_actions = "{}{}{}{}{}{}{}{}".format(SPECIFIC_HOLE, SPECIFIC_ACTIONS1, SPECIFIC_FLOP, SPECIFIC_ACTIONS2, SPECIFIC_TURN, SPECIFIC_ACTIONS3, SPECIFIC_RIVER, SPECIFIC_ACTIONS4)
-                suffix = "{}--{}--{}".format(time, num_cards_string, cards_actions)
+                suffix = "{}--{}--{}".format(cards, cards_actions, time)
 
             else:
                 suffix = "{}".format(time)
