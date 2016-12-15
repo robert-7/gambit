@@ -1,0 +1,64 @@
+# clone repository using github
+
+# change into the project directory
+cd /C/Users/Robert/code/github/gambit
+
+# download MinGW
+# WILL INCLUDE ALL PACKAGES DOWNLOADED HERE!!!
+
+# setup the build scripts
+mkdir m4
+aclocal
+libtoolize
+# these files must exist for automake, regardless if they have anything useful in them
+touch NEWS README AUTHORS ChangeLog 
+automake --add-missing
+autoconf
+
+# build gambit from source
+./configure
+make
+make install
+
+# clean up
+rm README
+
+# Now switch to ./src/python to finish python setup
+cd src/python
+
+# necessary install python modules, ensuring you have the most updated python version
+# sudo apt-get upgrade -y python
+wget --no-check-certificate https://bootstrap.pypa.io/ez_setup.py
+python ez_setup.py
+rm ez_setup.py
+
+# get pip (explanation here: https://pip.pypa.io/en/stable/installing/)
+wget --no-check-certificate https://bootstrap.pypa.io/get-pip.py
+python get-pip.py 
+rm get-pip.py
+
+# install cython module and build the cython packages
+pip install cython
+python setup.py build --compiler=mingw32
+python setup.py install
+rm setuptools-31.0.1.zip
+
+# install deuces for solving poker hands
+pip install deuces
+
+# install pudb for debugging and give permissions to the folder
+pip install pudb
+# mkdir -p /home/vagrant/.config/pudb
+# sudo chmod 777 /home/vagrant/.config/pudb
+
+# optional install to write games as xml format
+# install windows binaries for lxml by going here: http://www.lfd.uci.edu/~gohlke/pythonlibs/
+# search for lxml and download the one you need for Python 2.7
+# since I have Windows 32 OS (I guess) I needed lxml-3.6.4-cp27-cp27m-win32.whl
+pip install lxml-3.6.4-cp27-cp27m-win32.whl
+rm lxml-3.6.4-cp27-cp27m-win32.whl
+
+# run tests
+cd gambit/tests
+pip install nose
+nosetests
